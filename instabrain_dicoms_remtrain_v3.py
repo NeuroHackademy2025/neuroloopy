@@ -1,6 +1,5 @@
-
 from watchdog.events import PatternMatchingEventHandler
-# from watchdog.observers import Observer
+# from watchdog.observers import Observer - python watching the operating system, looking for incoming new files in the real time pipeline
 from watchdog.observers.polling import PollingObserver
 import multiprocessing as mp
 
@@ -13,6 +12,7 @@ import requests as r
 from dashboard import post_dashboard_mc_params, post_dashboard_clf_outs
 import time
 
+#creating a python class using watchdog pattern anlayser, searching for new files to be processed, real time mri has a folder where the new folder is going to show up, and this finds it and later it will trigger other things, setting something up to look for new things of interest that are showing up
 REALTIME_TIMEOUT = 0.1 # seconds to HTTP post timeout
 # dw: can try to allow more time before the connection times out:
 #REALTIME_TIMEOUT = 0.5
@@ -23,7 +23,7 @@ class InstaWatcher(PatternMatchingEventHandler):
 
         self.script_start_time = config.get('script_start_time', None)
 
-        file_pattern = '*.dcm'
+        file_pattern = '*.dcm' 
         #file_pattern = '*.' + config['subject-id'] + '_' + str(config['session-number']) + '/*.dcm'
         print('Looking for file pattern: ' + file_pattern)
         PatternMatchingEventHandler.__init__(self, 
@@ -31,21 +31,25 @@ class InstaWatcher(PatternMatchingEventHandler):
             ignore_patterns=[],
             ignore_directories=False)
 
+        #when this is going it is running a multiprocessing pool, each file that comes in is a volume or a TR or a volume, it will do all of these in parallel,
         # multiprocessing workers
         self.pool = mp.Pool()
 
-        # timings
+        # timings: these are user set timing parameters used later to tell neuroloopy the trial structure, you need to tell it a trial is this many TRs long etc, the parameters to set up the trial structure
         self.run_count = int(config['start-run'])-1
         self.baseline_trs = config['baseline-trs']
+        # defining what type of feedback you want, an argument you put into the config file to make it flexible, there two options: continious (throughout a period it is cont. updating) or intermittent (a single value of feedback per trial) - intermittent is more common
         try:
             feedback_mode = config['feedback-mode'].lower()
         except:
             feedback_mode = 'continuous'
+            #just need to tell it how long a run is,
         if feedback_mode == 'continuous':
             self.feedback_trs = config['feedback-trs']
             self.run_trs = self.baseline_trs+self.feedback_trs
             self.feedback_calc_trs = np.arange(self.baseline_trs,self.feedback_trs+self.baseline_trs)
-        elif feedback_mode == 'intermittent':
+            #calculating feedback once per trials, the specific components of a trial, encoding period, cue, in the config file put in a numerical value for how many TRs there are, breaking it down by the components of a trial        
+        elif feedback_mode == 'intermittent': # TODO: turn into dictionary input in .config & check
             self.trials = config['trials-per-run']
             self.encoding_trs = config['encoding-trs']
             self.cue_trs = config['cue-trs']
@@ -60,62 +64,81 @@ class InstaWatcher(PatternMatchingEventHandler):
                                       +np.arange(self.trials)*self.trial_trs-1)
 
         # data processing
-        self.moving_avg_trs = config['moving-avg-trs']
-        self.mc_mode = config['mc-mode'].lower()
+        # how many TRs are you averaging together - a number that you set in the configuration file
+        self.moving_avg_trs = config['moving-avg-trs'] # sliding avg for how many trs averaging together
+        #setting what software is going to be used for motion correction, type in the configuration file, can be FSL or Afni, lower case
+        self.mc_mode = config['mc-mode'].lower() # motion correct, fsl or afni; take argument as potential maybe as fmriprep or nipype 
 
-        # files and directories
+        # files and directories TODO: keep as bids-format as possible
+        # because its neurofeedback you need subject specific files, has to be set up before, bare miniumum would be the functional reference imaging
         self.subject_id = config['subject-id']
-        self.ref_dir = os.getcwd()+'/ref/'+self.subject_id
-        self.rfi_file = glob.glob(self.ref_dir+'/*rfi.nii.gz')[0]
+        self.ref_dir = os.getcwd()+'/ref/'+self.subject_id ## set up before running nf
+        self.rfi_file = glob.glob(self.ref_dir+'/*rfi.nii.gz')[0] ## TODO: implement checks functional reference image and/or subject specific classifier
         self.rfi_img = nib.load(self.rfi_file)
         self.rfi_data = self.rfi_img.get_data()
         self.ref_affine = self.rfi_img.get_qform()
         self.ref_header = self.rfi_img.header
-        self.clf_dir = os.getcwd()+'/mni_clf'
-        self.clf_file = glob.glob(self.clf_dir+'/*mni_clf.p')[0]
+        # classifier directory, have it change whether it is subject specific or group
+        self.clf_dir = os.getcwd()+'/mni_clf' # classifier dir
+        # .p file matlab specific, PYMVPA not sklearn, saving it an object, either like this or a pickle file
+        self.clf_file = glob.glob(self.clf_dir+'/*mni_clf.p')[0] #TODO: figure out what kind of file for reading in model
         # self.dcm2niix_dir = os.getcwd()
         # self.dcm2niix_dir = '/usr/bin/dcm2niix'
-        self.dcm2niix_dir = '/home/cjerinic/fsl/bin'
+        self.dcm2niix_dir = '/home/cjerinic/fsl/bin' #TODO: fsl/dcm2niix dir
         # self.warp_file = glob.glob(self.ref_dir+'/*warp.h5')[0]
-        self.warp_file = glob.glob(self.ref_dir+'/*warp_displacement.nii.gz')[0]
+        self.warp_file = glob.glob(self.ref_dir+'/*warp_displacement.nii.gz')[0] # only if mni conversion
         self.standard_dir = os.getcwd()+'/standard'
+        # alinging it to mni brain - all things that would only be called if you set in the config file
         self.mni_template = glob.glob(self.standard_dir+'/*2mm_brain.nii.gz')[0]
         # optional: target class can be specified in backend
+        # pattern classification: trained to distinguish whatever you want, trained on 4 classes, you get an output
         try:
             self.target_class = int(np.loadtxt(self.ref_dir+'/class.txt'))
         except:
             self.target_class = -1
-        self.proc_dir = os.getcwd()+'/proc'
+        # as the processesing happens the processing directory is where the conversion is happening and then it gets deleted
+        self.proc_dir = os.getcwd()+'/proc' #TODO: opt flag to save these temp files
+        # the watch_directory is a path name that you put in the configuration file and its a path name to a folder where the real time data is going to show up
         self.watch_dir = config['watch-dir']
         #self.watch_dir = config['watch-dir']+'/*.' + config['subject-id'] + '_' + str(config['session-number']) + '/'
+        # TODO: flow chart for process for documentation
 
-        # logic and initialization
+        # logic and initialization: collecting meta data from reference imaging
         self.slice_dims = (self.rfi_data.shape[0],self.rfi_data.shape[1])
         self.num_slices = self.rfi_data.shape[2]
-        self.clf = pickle.load(open(self.clf_file,'rb'))
+        #TODO: point of making this more modular, doesn't have to be clf
+        # actual classifier, loading and opening and reading file, so clf will be the actual object for classification
+        self.clf = pickle.load(open(self.clf_file,'rb')) # actual classifier
+        # masking of the voxels, and it will have the coordinates of each incidicie so it knows what voxels it needs to process
         self.num_roi_voxels = np.shape(self.clf.voxel_indices)[0]
+        
+        # saving the data in the process directory, so you can debug and you are testing things before you run things for real, are we archiving this yes or no, dump is the directory for saving this
         self.archive_bool = config['archive-data']
-        self.archive_dir = config['archive-dir']
-        self.reset_img_arrays()
+        self.archive_dir = config['archive-dir'] # if archiving data for debugging/checking preproc
+        
+        self.reset_img_arrays() # reset volume metadata variables
 
         # networking
-        self.post_url = config['post-url']
+        self.post_url = config['post-url'] # establish connection between experiment laptop & nfb laptop #TODO: checkpoint, can ping posturl?
+        #TODO: physical setup assumptions: ethernet cable
         # dw: is this a good place to print the post url?
 
-        # event logging
+        # event logging # when running scripts, can have it log different events, for debugging
         if config['logging_bool']:
             self.logging_bool = True
             self.log_file_time = config['log_file_time']
             log_file_name = os.getcwd()+'/log/'+str(self.log_file_time)+'_event.log'
             self.log_file = open(os.path.normpath(log_file_name),'w')
             write_log_header(self.log_file)
-            self.log_file_time = 1.539e9 #hacky
+            self.log_file_time = 1.539e9 #hacky #TODO: fix this?
             write_log(self.log_file, self.log_file_time, 'startup', 0)
         else:
             self.logging_bool = False
 
-        # dashboard display
-        if config['dashboard_bool']:
+        # dashboard display 
+        # set up a dashboard url and it will send information about the motion correction to a dashboard, monitor it through an html
+        # lets you view real time progress in an external browser at this url path if you choose to have it
+        if config['dashboard_bool']: ## gui ?? monitoring of motioncorrection for real time monitoring #TODO: figure out how to implement
             try:
                 self.dashboard_base_url = config['dashboard-base-url']
                 self.dashboard_mc_url = self.dashboard_base_url+'/mc_data'
@@ -130,15 +153,20 @@ class InstaWatcher(PatternMatchingEventHandler):
             self.try_dashboard_connection = False
             self.dashboard_bool = False
 
-    def apply_classifier(self, data):
+    # at this point we've read in our classifier object and we've opened it, as long as you are not setting it to log, its going to use real data not random data, will take the classifier object that will be a predict function, setting up classifier outside this, could set to base predict function
+    # more common way overwtite what is written in to sklearn, not all the classes will sum to 1, from zero to 1 how likely is the current thing you are classifying to 1, using ROI voxel numbers, average data from the trial
+    # a standard sklearn will have this written in
+    # the base one is the percent chance and then they have to sum to one
+    # take whatever model you feed and apply it to your data
+    def apply_classifier(self, data): #apply classifier obj to volume data
         if not(self.logging_bool):
-            self.clf.predict(np.ndarray((1,self.num_roi_voxels),buffer=data))
+            self.clf.predict(np.ndarray((1,self.num_roi_voxels),buffer=data)) #TODO: figure out more generalized way of implementing this (e.g., sklearn)
         else:
-            self.clf.predict(np.random.normal(0,1,(1,self.num_roi_voxels)))
+            self.clf.predict(np.random.normal(0,1,(1,self.num_roi_voxels))) #debug mode
             print('debugging mode: classifier value is random')
         return self.clf.ca.estimates
 
-    def reset_img_arrays(self):
+    def reset_img_arrays(self): # reset all meta data
         self.img_status_array = np.zeros(self.run_trs)
         self.raw_img_array = np.zeros((self.slice_dims[0],self.slice_dims[1],
             self.num_slices,self.run_trs),dtype=np.uint16)
@@ -146,8 +174,15 @@ class InstaWatcher(PatternMatchingEventHandler):
         self.feedback_count = -1
         self.zscore_calc = False
         self.voxel_sigmas = np.zeros(self.num_roi_voxels)
-
-    def on_created(self,event):
+    #TODO: reorg methods
+    #uses all these different functions to process each volume
+    # recognises theres a new file and does all the processing stuff
+    # a little vague exactly what it is
+    # 0) file config/prep
+    # 1) dcm2niix
+    # 2) process volumes, motion correction *to_mni, map_voxels_to_roi
+    # 3) save d process, detrending, apply classifier, saved clf output, reset for run
+    def on_created(self,event): #recog new file, start for new vol, start process, call preproc functions
         on_created_start = time.time()
         # is triggered by PatternMatchingEventHandler when dicom is created
         print('[on_created] New file detected:')
@@ -198,7 +233,8 @@ class InstaWatcher(PatternMatchingEventHandler):
             print('Starting async processing...')
 
             self.rep_start_times[rep] = time.time()
-
+            
+            #using what we set up earlier with the parallel multiprocessing, giving it all the arguments your processing needs
             self.pool.apply_async(func = process_volume,
                 args = (self.raw_nii,self.clf.voxel_indices,
                     rep,self.rfi_file,self.proc_dir,self.ref_header,
@@ -210,7 +246,7 @@ class InstaWatcher(PatternMatchingEventHandler):
         print('[on_created] Finished in %.3f seconds' % on_created_elapsed)
 
 
-
+    #calls process volume, the first function that is called in on created is to convert the dicom to the nifti
     def save_processed_roi(self, roi_and_rep_data):
         try:
             print('DEBUG save_processed_roi called with rep\n', roi_and_rep_data)
