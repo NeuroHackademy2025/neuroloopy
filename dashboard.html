@@ -40,7 +40,7 @@
         
         .dashboard-grid {
             display: grid;
-            grid-template-columns: 1fr 1fr;
+            grid-template-columns: 1fr 1fr 1fr 1fr;
             gap: 30px;
             margin-bottom: 30px;
         }
@@ -211,6 +211,18 @@
                 </div>
                 
                 <div class="card">
+                    <h2>Run Number</h2>
+                    <div id="run-number" class="value-display">--</div>
+                    <div id="run-timestamp" class="timestamp">No data received</div>
+                </div>
+                
+                <div class="card">
+                    <h2>Feedback Number</h2>
+                    <div id="feedback-number" class="value-display">--</div>
+                    <div id="feedback-number-timestamp" class="timestamp">No data received</div>
+                </div>
+                
+                <div class="card">
                     <h2>Motion Correction Parameters</h2>
                     <div class="mc-params">
                         <div class="mc-param">
@@ -301,6 +313,26 @@
                     document.getElementById('clf-value').classList.remove('pulse');
                 }, 2000);
             }
+            else if (data.type === 'run_number') {
+                document.getElementById('run-number').textContent = data.value;
+                document.getElementById('run-number').classList.add('pulse');
+                document.getElementById('run-timestamp').textContent = new Date().toLocaleTimeString();
+                
+                // Remove pulse animation after 2 seconds
+                setTimeout(() => {
+                    document.getElementById('run-number').classList.remove('pulse');
+                }, 2000);
+            }
+            else if (data.type === 'feedback_number') {
+                document.getElementById('feedback-number').textContent = data.value;
+                document.getElementById('feedback-number').classList.add('pulse');
+                document.getElementById('feedback-number-timestamp').textContent = new Date().toLocaleTimeString();
+                
+                // Remove pulse animation after 2 seconds
+                setTimeout(() => {
+                    document.getElementById('feedback-number').classList.remove('pulse');
+                }, 2000);
+            }
             else if (data.type === 'mc_data') {
                 const params = data.params;
                 if (params && params.length >= 6) {
@@ -359,6 +391,12 @@
                 .then(data => {
                     if (data.clf_data) {
                         updateDashboard({type: 'clf_data', value: data.clf_data.value});
+                    }
+                    if (data.run_number) {
+                        updateDashboard({type: 'run_number', value: data.run_number});
+                    }
+                    if (data.feedback_number) {
+                        updateDashboard({type: 'feedback_number', value: data.feedback_number});
                     }
                     if (data.mc_data) {
                         updateDashboard({type: 'mc_data', params: data.mc_data.params});

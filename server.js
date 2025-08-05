@@ -16,7 +16,9 @@ app.use(express.static('.'));
 let latestData = {
     clf_data: null,
     mc_data: null,
-    feedback_status: null
+    feedback_status: null,
+    run_number: null,
+    feedback_number: null
 };
 
 // WebSocket clients
@@ -49,6 +51,22 @@ wss.on('connection', (ws) => {
             type: 'feedback_status',
             sent: latestData.feedback_status.sent,
             timestamp: latestData.feedback_status.timestamp
+        }));
+    }
+    
+    if (latestData.run_number) {
+        ws.send(JSON.stringify({
+            type: 'run_number',
+            value: latestData.run_number.value,
+            timestamp: latestData.run_number.timestamp
+        }));
+    }
+    
+    if (latestData.feedback_number) {
+        ws.send(JSON.stringify({
+            type: 'feedback_number',
+            value: latestData.feedback_number.value,
+            timestamp: latestData.feedback_number.timestamp
         }));
     }
     
@@ -175,6 +193,74 @@ app.post('/feedback_status', (req, res) => {
     }
 });
 
+// POST endpoint for run number
+app.post('/run_number', (req, res) => {
+    try {
+        const { value, rep } = req.body;
+        
+        if (value === undefined || rep === undefined) {
+            return res.status(400).json({ error: 'Missing required fields: value, rep' });
+        }
+        
+        console.log(`Received run number - Rep: ${rep}, Value: ${value}`);
+        
+        // Store latest data
+        latestData.run_number = {
+            value: parseInt(value),
+            rep: parseInt(rep),
+            timestamp: new Date().toISOString()
+        };
+        
+        // Broadcast to WebSocket clients
+        broadcast({
+            type: 'run_number',
+            value: latestData.run_number.value,
+            rep: latestData.run_number.rep,
+            timestamp: latestData.run_number.timestamp
+        });
+        
+        res.json({ success: true, message: 'Run number received' });
+        
+    } catch (error) {
+        console.error('Error processing run number:', error);
+        res.status(500).json({ error: 'Internal server error' });
+    }
+});
+
+// POST endpoint for feedback number
+app.post('/feedback_number', (req, res) => {
+    try {
+        const { value, rep } = req.body;
+        
+        if (value === undefined || rep === undefined) {
+            return res.status(400).json({ error: 'Missing required fields: value, rep' });
+        }
+        
+        console.log(`Received feedback number - Rep: ${rep}, Value: ${value}`);
+        
+        // Store latest data
+        latestData.feedback_number = {
+            value: parseInt(value),
+            rep: parseInt(rep),
+            timestamp: new Date().toISOString()
+        };
+        
+        // Broadcast to WebSocket clients
+        broadcast({
+            type: 'feedback_number',
+            value: latestData.feedback_number.value,
+            rep: latestData.feedback_number.rep,
+            timestamp: latestData.feedback_number.timestamp
+        });
+        
+        res.json({ success: true, message: 'Feedback number received' });
+        
+    } catch (error) {
+        console.error('Error processing feedback number:', error);
+        res.status(500).json({ error: 'Internal server error' });
+    }
+});
+
 // GET endpoint for latest data (fallback for polling)
 app.get('/api/latest-data', (req, res) => {
     res.json(latestData);
@@ -206,6 +292,16 @@ app.get('/health', (req, res) => {
                 sent: latestData.feedback_status.sent,
                 rep: latestData.feedback_status.rep,
                 timestamp: latestData.feedback_status.timestamp
+            } : null,
+            run_number: latestData.run_number ? {
+                value: latestData.run_number.value,
+                rep: latestData.run_number.rep,
+                timestamp: latestData.run_number.timestamp
+            } : null,
+            feedback_number: latestData.feedback_number ? {
+                value: latestData.feedback_number.value,
+                rep: latestData.feedback_number.rep,
+                timestamp: latestData.feedback_number.timestamp
             } : null
         }
     });
@@ -236,6 +332,8 @@ server.listen(PORT, () => {
     console.log(`   - /clf_data (classifier output)`);
     console.log(`   - /mc_data (motion correction parameters)`);
     console.log(`   - /feedback_status (neurofeedback status)`);
+    console.log(`   - /run_number (run number)`);
+    console.log(`   - /feedback_number (feedback number)`);
     console.log(`Health check: http://localhost:${PORT}/health`);
     console.log(`Press Ctrl+C to stop the server`);
 });
