@@ -2,11 +2,52 @@
 
 ## System Overview
 
-This system provides a real-time monitoring dashboard for fMRI neurofeedback experiments. It consists of a Node.js backend server that receives data from your fMRI processing pipeline and broadcasts it to connected web browsers via WebSocket connections. The dashboard displays classifier outputs, motion correction parameters, and neurofeedback status in real-time without requiring page refreshes.
+This system provides a real-time monitoring dashboard for fMRI neurofeedback experiments. It consists of a Node.js backend server that receives data from your fMRI processing pipeline and broadcasts it to connected web browsers via WebSocket connections. The dashboard displays classifier outputs, motion correction parameters, run numbers, feedback numbers, and neurofeedback status in real-time without requiring page refreshes.
+
+## Directory Structure
+
+```
+neuroloopy/
+├── src/neuroloopy/dashboard/     # Dashboard application files
+│   ├── dashboard.html            # Frontend UI (HTML/CSS/JavaScript)
+│   ├── server.js                 # Backend server (Node.js/Express/WebSocket)
+│   ├── dashboard.py              # Python integration module
+│   ├── package.json              # Node.js dependencies and scripts
+│   └── package-lock.json         # Node.js dependency lock file
+├── start_dashboard.py            # Launcher script for the dashboard
+├── dashboard_integration.py      # Root-level dashboard integration module
+├── README.md                     # This documentation
+└── .gitignore                    # Git ignore rules
+```
+
+## Quick Start
+
+### 1. Start the Dashboard Server
+
+**Option A: Using the launcher script (Recommended)**
+```bash
+python3 start_dashboard.py
+```
+
+**Option B: Direct from dashboard directory**
+```bash
+cd src/neuroloopy/dashboard
+npm install
+npm start
+```
+
+### 2. Access the Dashboard
+Open your web browser to: **http://localhost:5001**
+
+### 3. Test the Connection
+```bash
+python3 dashboard_integration.py
+```
 
 ## Architecture Components
 
 ### 1. Frontend Dashboard (dashboard.html)
+- **Location**: `src/neuroloopy/dashboard/dashboard.html`
 - **Purpose**: Web-based user interface for real-time data visualization
 - **Technology**: HTML5, CSS3, JavaScript with WebSocket support
 - **Features**: 
@@ -18,6 +59,7 @@ This system provides a real-time monitoring dashboard for fMRI neurofeedback exp
   - Fallback HTTP polling if WebSocket fails
 
 ### 2. Backend Server (server.js)
+- **Location**: `src/neuroloopy/dashboard/server.js`
 - **Purpose**: HTTP API server with WebSocket broadcasting capabilities
 - **Technology**: Node.js with Express.js and ws (WebSocket) libraries
 - **Features**:
@@ -28,6 +70,7 @@ This system provides a real-time monitoring dashboard for fMRI neurofeedback exp
   - Health monitoring endpoint
 
 ### 3. Python Integration Module (dashboard.py)
+- **Location**: `src/neuroloopy/dashboard/dashboard.py`
 - **Purpose**: Provides functions for your fMRI pipeline to send data to the dashboard
 - **Technology**: Python with requests library
 - **Features**:
@@ -36,16 +79,17 @@ This system provides a real-time monitoring dashboard for fMRI neurofeedback exp
   - Error handling and timeout management
   - Automatic data type conversion
 
-### 4. Package Configuration (package.json)
-- **Purpose**: Defines Node.js dependencies and project metadata
-- **Dependencies**: Express.js (web framework), ws (WebSocket library)
+### 4. Root Integration Module (dashboard_integration.py)
+- **Location**: `dashboard_integration.py` (root directory)
+- **Purpose**: Easy-to-use wrapper for importing dashboard functions from anywhere
+- **Usage**: `from dashboard_integration import post_dashboard_clf_outs`
 
 ## Data Flow Architecture
 
 ```
 fMRI Processing Pipeline
          ↓
-   dashboard.py functions
+   dashboard_integration.py functions
          ↓
    HTTP POST requests
          ↓
@@ -69,18 +113,6 @@ Receives classifier output data from fMRI processing pipeline.
 }
 ```
 
-**Parameters:**
-- `value` (float): Classifier output value (typically 0.0 to 1.0)
-- `rep` (integer): Repetition/volume number for tracking
-
-**Response:**
-```json
-{
-  "success": true,
-  "message": "Classifier data received"
-}
-```
-
 ### POST /mc_data
 Receives motion correction parameters from fMRI processing pipeline.
 
@@ -89,24 +121,6 @@ Receives motion correction parameters from fMRI processing pipeline.
 {
   "params": [0.001, -0.002, 0.003, 0.0001, -0.0002, 0.0003],
   "rep": 42
-}
-```
-
-**Parameters:**
-- `params` (array of 6 floats): Motion correction parameters
-  - `params[0]`: X Translation (mm)
-  - `params[1]`: Y Translation (mm)
-  - `params[2]`: Z Translation (mm)
-  - `params[3]`: X Rotation (radians)
-  - `params[4]`: Y Rotation (radians)
-  - `params[5]`: Z Rotation (radians)
-- `rep` (integer): Repetition/volume number for tracking
-
-**Response:**
-```json
-{
-  "success": true,
-  "message": "Motion correction data received"
 }
 ```
 
@@ -121,150 +135,76 @@ Receives neurofeedback delivery status from fMRI processing pipeline.
 }
 ```
 
-**Parameters:**
-- `sent` (boolean): Whether neurofeedback was sent to participant
-- `rep` (integer): Repetition/volume number for tracking
+### POST /run_number
+Receives current run number from fMRI processing pipeline.
 
-**Response:**
+**Request Format:**
 ```json
 {
-  "success": true,
-  "message": "Neurofeedback status received"
+  "value": 3,
+  "rep": 42
 }
 ```
 
-### GET /health
-Provides system status and current data values.
+### POST /feedback_number
+Receives current feedback number from fMRI processing pipeline.
 
-**Response:**
+**Request Format:**
 ```json
 {
-  "status": "ok",
-  "timestamp": "2025-08-05T21:27:29.482Z",
-  "connectedClients": 2,
-  "latestData": {
-    "clf_data": {
-      "value": 0.75,
-      "rep": 42,
-      "timestamp": "2025-08-05T21:27:29.482Z"
-    },
-    "mc_data": {
-      "params": [0.001, -0.002, 0.003, 0.0001, -0.0002, 0.0003],
-      "rep": 42,
-      "timestamp": "2025-08-05T21:27:29.482Z"
-    },
-    "feedback_status": {
-      "sent": true,
-      "rep": 42,
-      "timestamp": "2025-08-05T21:27:29.482Z"
-    }
-  }
-}
-```
-
-### GET /api/latest-data
-Provides latest data for HTTP polling fallback.
-
-**Response:** Same as /health endpoint
-
-## WebSocket Communication Protocol
-
-The server broadcasts data to all connected clients using JSON messages with the following structure:
-
-### Classifier Data Message
-```json
-{
-  "type": "clf_data",
-  "value": 0.75,
-  "rep": 42,
-  "timestamp": "2025-08-05T21:27:29.482Z"
-}
-```
-
-### Motion Correction Data Message
-```json
-{
-  "type": "mc_data",
-  "params": [0.001, -0.002, 0.003, 0.0001, -0.0002, 0.0003],
-  "rep": 42,
-  "timestamp": "2025-08-05T21:27:29.482Z"
-}
-```
-
-### Neurofeedback Status Message
-```json
-{
-  "type": "feedback_status",
-  "sent": true,
-  "rep": 42,
-  "timestamp": "2025-08-05T21:27:29.482Z"
+  "value": 12,
+  "rep": 42
 }
 ```
 
 ## Python Integration Functions
 
-### post_dashboard_clf_outs(clf_value, rep, url=None)
-Sends classifier output to the dashboard.
+### Using the Root Integration Module (Recommended)
 
-**Parameters:**
-- `clf_value` (float/int): Classifier output value
-- `rep` (int): Repetition/volume number
-- `url` (str, optional): Custom endpoint URL
-
-**Returns:** Boolean indicating success
-
-**Example:**
 ```python
-from dashboard import post_dashboard_clf_outs
+from dashboard_integration import (
+    post_dashboard_clf_outs,
+    post_dashboard_mc_params,
+    post_dashboard_feedback_status,
+    post_dashboard_run_number,
+    post_dashboard_feedback_number,
+    check_dashboard_connection
+)
+
+# Send classifier output
 post_dashboard_clf_outs(0.75, 42)
-```
 
-### post_dashboard_mc_params(mc_params, rep, url=None)
-Sends motion correction parameters to the dashboard.
-
-**Parameters:**
-- `mc_params` (list): Array of 6 motion correction parameters
-- `rep` (int): Repetition/volume number
-- `url` (str, optional): Custom endpoint URL
-
-**Returns:** Boolean indicating success
-
-**Example:**
-```python
-from dashboard import post_dashboard_mc_params
+# Send motion correction parameters
 mc_params = [0.001, -0.002, 0.003, 0.0001, -0.0002, 0.0003]
 post_dashboard_mc_params(mc_params, 42)
-```
 
-### post_dashboard_feedback_status(sent, rep, url=None)
-Sends neurofeedback delivery status to the dashboard.
-
-**Parameters:**
-- `sent` (bool): Whether neurofeedback was sent to participant
-- `rep` (int): Repetition/volume number
-- `url` (str, optional): Custom endpoint URL
-
-**Returns:** Boolean indicating success
-
-**Example:**
-```python
-from dashboard import post_dashboard_feedback_status
+# Send neurofeedback status
 post_dashboard_feedback_status(True, 42)  # Feedback sent
 post_dashboard_feedback_status(False, 42) # Feedback not sent
-```
 
-### check_dashboard_connection()
-Tests if the dashboard server is accessible.
+# Send run number
+post_dashboard_run_number(3, 42)
 
-**Returns:** Boolean indicating server availability
+# Send feedback number
+post_dashboard_feedback_number(12, 42)
 
-**Example:**
-```python
-from dashboard import check_dashboard_connection
+# Check connection
 if check_dashboard_connection():
     print("Dashboard server is running")
-else:
-    print("Dashboard server is not accessible")
+```
+
+### Using the Dashboard Module Directly
+
+```python
+import sys
+import os
+
+# Add dashboard directory to path
+dashboard_dir = os.path.join(os.path.dirname(__file__), 'src', 'neuroloopy', 'dashboard')
+sys.path.insert(0, dashboard_dir)
+
+from dashboard import post_dashboard_clf_outs
+post_dashboard_clf_outs(0.75, 42)
 ```
 
 ## Integration with fMRI Pipeline
@@ -274,7 +214,7 @@ Based on analysis of instabrain_dicoms_remtrain_v3.py:
 
 1. **Import Statement** (line 11):
 ```python
-from dashboard import post_dashboard_mc_params, post_dashboard_clf_outs
+from dashboard_integration import post_dashboard_mc_params, post_dashboard_clf_outs
 ```
 
 2. **Classifier Data Sending** (line 322):
@@ -287,27 +227,28 @@ post_dashboard_clf_outs(clf_out[0], rep, self.dashboard_clf_url)
 post_dashboard_mc_params(mc_params, rep, self.dashboard_mc_url)
 ```
 
-### Required Modifications for Neurofeedback Status
+### Required Modifications for New Features
 
-Add the following to your fMRI pipeline where neurofeedback is delivered:
+Add the following to your fMRI pipeline where appropriate:
 
 ```python
-from dashboard import post_dashboard_feedback_status
+from dashboard_integration import (
+    post_dashboard_feedback_status,
+    post_dashboard_run_number,
+    post_dashboard_feedback_number
+)
 
 # When neurofeedback is sent to participant
 post_dashboard_feedback_status(True, rep, self.dashboard_feedback_url)
 
 # When neurofeedback is NOT sent (e.g., during baseline periods)
 post_dashboard_feedback_status(False, rep, self.dashboard_feedback_url)
-```
 
-### Configuration in fMRI Pipeline
+# Send current run number
+post_dashboard_run_number(current_run, rep, self.dashboard_run_url)
 
-Ensure your config file includes dashboard settings:
-
-```yaml
-dashboard_bool: true
-dashboard-base-url: "http://localhost:5001"
+# Send current feedback number
+post_dashboard_feedback_number(current_feedback, rep, self.dashboard_feedback_number_url)
 ```
 
 ## Installation and Setup
@@ -319,13 +260,9 @@ dashboard-base-url: "http://localhost:5001"
 
 ### Step 1: Install Node.js Dependencies
 ```bash
+cd src/neuroloopy/dashboard
 npm install
 ```
-
-This installs:
-- express (web framework)
-- ws (WebSocket library)
-- nodemon (development dependency for auto-restart)
 
 ### Step 2: Install Python Dependencies
 ```bash
@@ -334,18 +271,17 @@ pip3 install requests
 
 ### Step 3: Start Dashboard Server
 ```bash
-npm start
-```
+# Option A: Using launcher script (recommended)
+python3 start_dashboard.py
 
-Alternative commands:
-```bash
-node server.js
-npm run dev  # For development with auto-restart
+# Option B: Direct from dashboard directory
+cd src/neuroloopy/dashboard
+npm start
 ```
 
 ### Step 4: Test Connection
 ```bash
-python3 dashboard.py
+python3 dashboard_integration.py
 ```
 
 ### Step 5: Access Dashboard
@@ -359,25 +295,19 @@ Default port is 5001. To change:
 **Environment Variable:**
 ```bash
 export PORT=8080
-npm start
+python3 start_dashboard.py
 ```
 
 **Direct Modification:**
-Edit server.js line 175:
+Edit `src/neuroloopy/dashboard/server.js` line 320:
 ```javascript
 const PORT = process.env.PORT || 8080;
 ```
 
 ### Dashboard URLs
-Modify in dashboard.py:
+Modify in `src/neuroloopy/dashboard/dashboard.py`:
 ```python
 DASHBOARD_BASE_URL = "http://localhost:8080"
-```
-
-### Request Timeout
-Modify in dashboard.py:
-```python
-REQUEST_TIMEOUT = 1.0  # seconds
 ```
 
 ## Error Handling and Troubleshooting
@@ -397,7 +327,7 @@ pkill -f "node server.js"
 
 # Or change port
 export PORT=5002
-npm start
+python3 start_dashboard.py
 ```
 
 #### No Data Updates
@@ -405,7 +335,7 @@ npm start
 
 **Diagnosis:**
 1. Check server status: `curl http://localhost:5001/health`
-2. Test with sample data: `python3 dashboard.py`
+2. Test with sample data: `python3 dashboard_integration.py`
 3. Check browser console for WebSocket errors
 4. Verify firewall allows localhost:5001
 
@@ -414,15 +344,6 @@ npm start
 - Check network connectivity
 - Verify JSON format matches expected schema
 - Restart server if needed
-
-#### WebSocket Connection Issues
-**Symptoms:** "Disconnected from server" status
-
-**Solutions:**
-- Refresh browser page
-- Check server is running
-- Verify port 5001 is accessible
-- Check browser console for errors
 
 #### Python Import Errors
 **Error:** `ModuleNotFoundError: No module named 'requests'`
@@ -448,6 +369,7 @@ curl -X POST http://localhost:5001/clf_data \
 
 #### Monitor Server Logs
 ```bash
+cd src/neuroloopy/dashboard
 node server.js
 ```
 
@@ -486,7 +408,7 @@ node server.js
 
 ### Adding New Data Types
 
-1. **Add Server Endpoint** (server.js):
+1. **Add Server Endpoint** (`src/neuroloopy/dashboard/server.js`):
 ```javascript
 app.post('/new_data', (req, res) => {
     const { value, rep } = req.body;
@@ -496,7 +418,7 @@ app.post('/new_data', (req, res) => {
 });
 ```
 
-2. **Add Python Function** (dashboard.py):
+2. **Add Python Function** (`src/neuroloopy/dashboard/dashboard.py`):
 ```python
 def post_dashboard_new_data(value, rep, url=None):
     if url is None:
@@ -507,7 +429,7 @@ def post_dashboard_new_data(value, rep, url=None):
     return response.status_code == 200
 ```
 
-3. **Add Dashboard Display** (dashboard.html):
+3. **Add Dashboard Display** (`src/neuroloopy/dashboard/dashboard.html`):
 ```html
 <div class="card">
     <h2>New Data Type</h2>
@@ -516,7 +438,7 @@ def post_dashboard_new_data(value, rep, url=None):
 </div>
 ```
 
-4. **Add JavaScript Handler** (dashboard.html):
+4. **Add JavaScript Handler** (`src/neuroloopy/dashboard/dashboard.html`):
 ```javascript
 else if (data.type === 'new_data') {
     document.getElementById('new-data-value').textContent = data.value.toFixed(4);
@@ -524,37 +446,20 @@ else if (data.type === 'new_data') {
 }
 ```
 
-### Modifying UI Styling
-
-**Color Scheme:**
-Edit CSS variables in dashboard.html:
-```css
-:root {
-    --primary-color: #667eea;
-    --secondary-color: #764ba2;
-    --success-color: #4CAF50;
-    --error-color: #f44336;
-}
-```
-
-**Layout Changes:**
-Modify CSS grid in dashboard.html:
-```css
-.dashboard-grid {
-    grid-template-columns: 1fr 1fr 1fr;  /* 3 columns instead of 2 */
-}
-```
-
 ## File Structure Reference
 
 ```
 neuroloopy/
-├── dashboard.html          # Frontend UI (HTML/CSS/JavaScript)
-├── server.js              # Backend server (Node.js/Express/WebSocket)
-├── dashboard.py           # Python integration module
-├── package.json           # Node.js dependencies and scripts
-├── README.md             # This documentation
-└── node_modules/         # Installed Node.js packages
+├── src/neuroloopy/dashboard/     # Dashboard application
+│   ├── dashboard.html            # Frontend UI (HTML/CSS/JavaScript)
+│   ├── server.js                 # Backend server (Node.js/Express/WebSocket)
+│   ├── dashboard.py              # Python integration module
+│   ├── package.json              # Node.js dependencies and scripts
+│   └── package-lock.json         # Installed Node.js packages
+├── start_dashboard.py            # Launcher script
+├── dashboard_integration.py      # Root-level integration module
+├── README.md                     # This documentation
+└── .gitignore                    # Git ignore rules
 ```
 
 ## API Reference Summary
@@ -565,6 +470,8 @@ neuroloopy/
 | `/clf_data` | POST | Receive classifier output | `{"value": float, "rep": int}` |
 | `/mc_data` | POST | Receive motion correction | `{"params": [6 floats], "rep": int}` |
 | `/feedback_status` | POST | Receive neurofeedback status | `{"sent": bool, "rep": int}` |
+| `/run_number` | POST | Receive run number | `{"value": int, "rep": int}` |
+| `/feedback_number` | POST | Receive feedback number | `{"value": int, "rep": int}` |
 | `/health` | GET | System status | JSON with all latest data |
 | `/api/latest-data` | GET | Latest data (polling) | JSON with all latest data |
 
@@ -575,19 +482,21 @@ neuroloopy/
 | `clf_data` | Classifier output update | `{value, rep, timestamp}` |
 | `mc_data` | Motion correction update | `{params, rep, timestamp}` |
 | `feedback_status` | Neurofeedback status update | `{sent, rep, timestamp}` |
+| `run_number` | Run number update | `{value, rep, timestamp}` |
+| `feedback_number` | Feedback number update | `{value, rep, timestamp}` |
 
 ## Testing and Validation
 
 ### Automated Testing
 ```bash
 # Test server startup
-npm start
+python3 start_dashboard.py
 
 # Test health endpoint
 curl http://localhost:5001/health
 
 # Test data endpoints
-python3 dashboard.py
+python3 dashboard_integration.py
 
 # Test WebSocket connection
 # Open browser to http://localhost:5001 and check console
@@ -622,9 +531,9 @@ python3 dashboard.py
 ```dockerfile
 FROM node:16-alpine
 WORKDIR /app
-COPY package*.json ./
+COPY src/neuroloopy/dashboard/package*.json ./
 RUN npm install
-COPY . .
+COPY src/neuroloopy/dashboard/ .
 EXPOSE 5001
 CMD ["npm", "start"]
 ```
@@ -632,7 +541,7 @@ CMD ["npm", "start"]
 ## Support and Maintenance
 
 ### Log Files
-- Server logs: Console output from node server.js
+- Server logs: Console output from `python3 start_dashboard.py`
 - Browser logs: Developer console in web browser
 - Network logs: Browser Network tab for HTTP requests
 
@@ -642,12 +551,14 @@ CMD ["npm", "start"]
 - Server uptime and error rates
 
 ### Updates and Maintenance
-- Regular dependency updates: `npm update`
-- Security patches: `npm audit fix`
+- Regular dependency updates: `cd src/neuroloopy/dashboard && npm update`
+- Security patches: `cd src/neuroloopy/dashboard && npm audit fix`
 - Code modifications: Edit source files and restart server
 
 ## Conclusion
 
 This dashboard system provides a complete real-time monitoring solution for fMRI neurofeedback experiments. It offers professional-grade visualization, robust error handling, and seamless integration with existing fMRI processing pipelines. The modular architecture allows for easy customization and extension to meet specific research requirements.
+
+The reorganized directory structure provides better separation of concerns and makes the codebase more maintainable while preserving all functionality.
 
 For technical support or feature requests, refer to the source code comments and this documentation. The system is designed to be self-contained and requires minimal external dependencies while providing maximum functionality for real-time neurofeedback monitoring.

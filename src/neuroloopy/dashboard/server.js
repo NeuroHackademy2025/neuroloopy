@@ -10,7 +10,7 @@ const wss = new WebSocket.Server({ server });
 
 // Middleware
 app.use(express.json());
-app.use(express.static('.'));
+app.use(express.static(__dirname));
 
 // Store latest data
 let latestData = {
