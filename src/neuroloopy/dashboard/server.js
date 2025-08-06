@@ -325,7 +325,7 @@ server.on('error', (error) => {
     }
 });
 
-server.listen(PORT, () => {
+server.listen(PORT, '0.0.0.0', () => {
     console.log(`Dashboard server running on http://localhost:${PORT}`);
     console.log(`WebSocket server ready for real-time updates`);
     console.log(`POST endpoints:`);

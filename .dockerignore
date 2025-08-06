@@ -1,0 +1,38 @@
+# Git
+.git
+.gitignore
+
+# Documentation
+README.md
+*.md
+TROUBLESHOOTING.md
+JUPYTER_HUB_GUIDE.md
+
+# Python files (not needed for Node.js dashboard)
+*.py
+*.ipynb
+__pycache__/
+*.pyc
+
+# Node.js (will be installed in container)
+node_modules/
+npm-debug.log*
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE files
+.vscode/
+.idea/
+
+# Logs
+*.log
+
+# Test files
+tests/
+test_*.py
+
+# Docker files (except Dockerfile)
+docker-compose.yml
+.dockerignore 

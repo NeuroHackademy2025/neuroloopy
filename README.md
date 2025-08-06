@@ -528,13 +528,36 @@ python3 dashboard_integration.py
 - Implement SSL/TLS encryption
 
 ### Docker Deployment
+
+**Option A: Using Docker Compose (Recommended)**
+```bash
+# Build and run with Docker Compose
+docker-compose up --build
+
+# Access dashboard at http://localhost:5001
+```
+
+**Option B: Manual Docker commands**
+```bash
+# Build the image
+docker build -t neuroloopy-dashboard .
+
+# Run the container
+docker run -p 5001:5001 neuroloopy-dashboard
+
+# Access dashboard at http://localhost:5001
+```
+
+**Dockerfile:**
 ```dockerfile
-FROM node:16-alpine
+FROM node:18-alpine
 WORKDIR /app
 COPY src/neuroloopy/dashboard/package*.json ./
-RUN npm install
+RUN npm ci --only=production
 COPY src/neuroloopy/dashboard/ .
 EXPOSE 5001
+HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
+  CMD node -e "require('http').get('http://localhost:5001/health', (res) => { process.exit(res.statusCode === 200 ? 0 : 1) })"
 CMD ["npm", "start"]
 ```
 
