@@ -25,44 +25,49 @@ class DashboardData:
 # Global data store
 dashboard_data = DashboardData()
 
-def create_dashboard_widgets():
-    """Create interactive dashboard widgets"""
+def create_simple_dashboard():
+    """Create a simple dashboard that displays properly in Jupyter"""
     
-    # Create output widgets
-    clf_output = widgets.HTML(value="<div style='font-size: 2em; text-align: center;'>--</div>")
-    run_output = widgets.HTML(value="<div style='font-size: 2em; text-align: center;'>--</div>")
-    feedback_output = widgets.HTML(value="<div style='font-size: 2em; text-align: center;'>--</div>")
-    mc_output = widgets.HTML(value="<div style='font-size: 1.2em; text-align: center;'>--</div>")
-    status_output = widgets.HTML(value="<div style='font-size: 1.2em; text-align: center; color: gray;'>NEUROFEEDBACK NOT SENT</div>")
+    # Create output areas
+    clf_output = widgets.HTML(value="<div style='font-size: 2em; text-align: center; color: #4CAF50;'>--</div>")
+    run_output = widgets.HTML(value="<div style='font-size: 2em; text-align: center; color: #2196F3;'>--</div>")
+    feedback_output = widgets.HTML(value="<div style='font-size: 2em; text-align: center; color: #FF9800;'>--</div>")
+    mc_output = widgets.HTML(value="<div style='font-size: 1.2em; text-align: center; color: #9C27B0;'>--</div>")
+    status_output = widgets.HTML(value="<div style='font-size: 1.2em; text-align: center; color: #9E9E9E; background: rgba(158, 158, 158, 0.2); padding: 10px; border-radius: 5px;'>NEUROFEEDBACK NOT SENT</div>")
     timestamp_output = widgets.HTML(value="<div style='font-size: 0.8em; text-align: center; color: gray;'>No data received</div>")
     
     # Create test buttons
-    test_clf_btn = widgets.Button(description="Test Classifier")
-    test_run_btn = widgets.Button(description="Test Run Number")
-    test_feedback_btn = widgets.Button(description="Test Feedback Number")
-    test_mc_btn = widgets.Button(description="Test Motion Correction")
-    test_status_btn = widgets.Button(description="Test Neurofeedback Status")
+    test_clf_btn = widgets.Button(description="Test Classifier", button_style='primary')
+    test_run_btn = widgets.Button(description="Test Run Number", button_style='info')
+    test_feedback_btn = widgets.Button(description="Test Feedback Number", button_style='warning')
+    test_mc_btn = widgets.Button(description="Test Motion Correction", button_style='success')
+    test_status_btn = widgets.Button(description="Test Neurofeedback Status", button_style='danger')
     
     # Button event handlers
     def on_test_clf(b):
         update_dashboard_data('clf_data', 0.75, 1)
         update_display()
+        print("✅ Test: Classifier output updated to 0.75")
     
     def on_test_run(b):
         update_dashboard_data('run_number', 3, 1)
         update_display()
+        print("✅ Test: Run number updated to 3")
     
     def on_test_feedback(b):
         update_dashboard_data('feedback_number', 12, 1)
         update_display()
+        print("✅ Test: Feedback number updated to 12")
     
     def on_test_mc(b):
         update_dashboard_data('mc_data', [0.001, -0.002, 0.003, 0.0001, -0.0002, 0.0003], 1)
         update_display()
+        print("✅ Test: Motion correction parameters updated")
     
     def on_test_status(b):
         update_dashboard_data('feedback_status', True, 1)
         update_display()
+        print("✅ Test: Neurofeedback status updated to SENT")
     
     test_clf_btn.on_click(on_test_clf)
     test_run_btn.on_click(on_test_run)
@@ -71,50 +76,57 @@ def create_dashboard_widgets():
     test_status_btn.on_click(on_test_status)
     
     # Create layout
-    header = widgets.HTML(value="<h1 style='text-align: center; color: #667eea;'>neuroloopy</h1><h3 style='text-align: center; color: #764ba2;'>fMRI Neurofeedback Dashboard</h3>")
+    header = widgets.HTML(value="<h1 style='text-align: center; color: #667eea; font-family: Arial, sans-serif;'>neuroloopy</h1><h3 style='text-align: center; color: #764ba2; font-family: Arial, sans-serif;'>fMRI Neurofeedback Dashboard</h3>")
+    
+    # Status section
+    status_section = widgets.VBox([
+        widgets.HTML(value="<h3 style='font-family: Arial, sans-serif;'>Neurofeedback Status</h3>"),
+        status_output,
+        timestamp_output
+    ])
     
     # Main dashboard grid
     dashboard_grid = widgets.GridBox(
         children=[
             widgets.VBox([
-                widgets.HTML(value="<h3>Classifier Output</h3>"),
+                widgets.HTML(value="<h3 style='font-family: Arial, sans-serif;'>Classifier Output</h3>"),
                 clf_output,
-                timestamp_output
+                widgets.HTML(value="<div style='font-size: 0.8em; text-align: center; color: gray;'>No data received</div>")
             ]),
             widgets.VBox([
-                widgets.HTML(value="<h3>Run Number</h3>"),
+                widgets.HTML(value="<h3 style='font-family: Arial, sans-serif;'>Run Number</h3>"),
                 run_output,
-                timestamp_output
+                widgets.HTML(value="<div style='font-size: 0.8em; text-align: center; color: gray;'>No data received</div>")
             ]),
             widgets.VBox([
-                widgets.HTML(value="<h3>Feedback Number</h3>"),
+                widgets.HTML(value="<h3 style='font-family: Arial, sans-serif;'>Feedback Number</h3>"),
                 feedback_output,
-                timestamp_output
+                widgets.HTML(value="<div style='font-size: 0.8em; text-align: center; color: gray;'>No data received</div>")
             ]),
             widgets.VBox([
-                widgets.HTML(value="<h3>Motion Correction</h3>"),
+                widgets.HTML(value="<h3 style='font-family: Arial, sans-serif;'>Motion Correction</h3>"),
                 mc_output,
-                timestamp_output
+                widgets.HTML(value="<div style='font-size: 0.8em; text-align: center; color: gray;'>No data received</div>")
             ])
         ],
         layout=widgets.Layout(
             grid_template_columns='repeat(2, 1fr)',
-            grid_gap='10px',
-            width='100%'
+            grid_gap='20px',
+            width='100%',
+            border='2px solid #e0e0e0',
+            padding='20px',
+            margin='10px'
         )
     )
-    
-    # Status section
-    status_section = widgets.VBox([
-        widgets.HTML(value="<h3>Neurofeedback Status</h3>"),
-        status_output,
-        timestamp_output
-    ])
     
     # Test controls
     test_controls = widgets.HBox([
         test_clf_btn, test_run_btn, test_feedback_btn, test_mc_btn, test_status_btn
-    ])
+    ], layout=widgets.Layout(
+        justify_content='space-around',
+        width='100%',
+        margin='20px 0'
+    ))
     
     # Store widgets for updates
     dashboard_data.widgets = {
@@ -126,12 +138,20 @@ def create_dashboard_widgets():
         'timestamp_output': timestamp_output
     }
     
-    return widgets.VBox([
+    # Create main container
+    main_container = widgets.VBox([
         header,
         status_section,
         dashboard_grid,
         test_controls
-    ])
+    ], layout=widgets.Layout(
+        width='100%',
+        border='3px solid #667eea',
+        padding='20px',
+        margin='10px'
+    ))
+    
+    return main_container
 
 def update_dashboard_data(data_type, value, rep):
     """Update dashboard data"""
@@ -158,24 +178,23 @@ def update_display():
     # Update classifier output
     if dashboard_data.clf_data:
         value = dashboard_data.clf_data['value']
-        widgets['clf_output'].value = f"<div style='font-size: 2em; text-align: center; color: #4CAF50;'>{value:.4f}</div>"
-        widgets['timestamp_output'].value = f"<div style='font-size: 0.8em; text-align: center; color: gray;'>Updated: {dashboard_data.clf_data['timestamp'].strftime('%H:%M:%S')}</div>"
+        widgets['clf_output'].value = f"<div style='font-size: 2em; text-align: center; color: #4CAF50; font-weight: bold;'>{value:.4f}</div>"
     
     # Update run number
     if dashboard_data.run_number:
         value = dashboard_data.run_number['value']
-        widgets['run_output'].value = f"<div style='font-size: 2em; text-align: center; color: #2196F3;'>{value}</div>"
+        widgets['run_output'].value = f"<div style='font-size: 2em; text-align: center; color: #2196F3; font-weight: bold;'>{value}</div>"
     
     # Update feedback number
     if dashboard_data.feedback_number:
         value = dashboard_data.feedback_number['value']
-        widgets['feedback_output'].value = f"<div style='font-size: 2em; text-align: center; color: #FF9800;'>{value}</div>"
+        widgets['feedback_output'].value = f"<div style='font-size: 2em; text-align: center; color: #FF9800; font-weight: bold;'>{value}</div>"
     
     # Update motion correction
     if dashboard_data.mc_data:
         params = dashboard_data.mc_data['params']
         mc_html = f"""
-        <div style='font-size: 1.2em; text-align: center; color: #9C27B0;'>
+        <div style='font-size: 1.2em; text-align: center; color: #9C27B0; font-weight: bold;'>
             X: {params[0]:.4f} | Y: {params[1]:.4f} | Z: {params[2]:.4f}<br>
             RX: {params[3]:.4f} | RY: {params[4]:.4f} | RZ: {params[5]:.4f}
         </div>
@@ -186,7 +205,7 @@ def update_display():
     if dashboard_data.feedback_status:
         sent = dashboard_data.feedback_status['sent']
         if sent:
-            widgets['status_output'].value = "<div style='font-size: 1.2em; text-align: center; color: #4CAF50; background: rgba(76, 175, 80, 0.2); padding: 10px; border-radius: 5px;'>NEUROFEEDBACK SENT</div>"
+            widgets['status_output'].value = "<div style='font-size: 1.2em; text-align: center; color: #4CAF50; background: rgba(76, 175, 80, 0.2); padding: 10px; border-radius: 5px; font-weight: bold;'>NEUROFEEDBACK SENT</div>"
         else:
             widgets['status_output'].value = "<div style='font-size: 1.2em; text-align: center; color: #9E9E9E; background: rgba(158, 158, 158, 0.2); padding: 10px; border-radius: 5px;'>NEUROFEEDBACK NOT SENT</div>"
 
@@ -197,8 +216,10 @@ def start_dashboard():
     print("📊 Dashboard will appear below")
     print("🧪 Use the test buttons to simulate data")
     
-    # Create and display dashboard
-    dashboard = create_dashboard_widgets()
+    # Create dashboard
+    dashboard = create_simple_dashboard()
+    
+    # Display the dashboard
     display(dashboard)
     
     # Display instructions
@@ -208,12 +229,12 @@ def start_dashboard():
         <ul>
             <li><strong>Test Buttons:</strong> Click to simulate different types of data</li>
             <li><strong>Real Data:</strong> Use the Python functions below to send real data</li>
-            <li><strong>Integration:</strong> Import dashboard_integration.py in your fMRI pipeline</li>
+            <li><strong>Integration:</strong> Import this module in your fMRI pipeline</li>
         </ul>
         
         <h4>🔧 Python Integration:</h4>
         <pre style="background: #e0e0e0; padding: 10px; border-radius: 3px;">
-from dashboard_integration import *
+from jupyter_dashboard_web import *
 
 # Send classifier output
 post_dashboard_clf_outs(0.75, 1)
@@ -231,6 +252,9 @@ post_dashboard_feedback_number(12, 1)
     </div>
     """
     display(HTML(instructions))
+    
+    print("✅ Dashboard is now running!")
+    print("🎯 Click the test buttons above to see it in action")
     
     return dashboard
 
