@@ -28,10 +28,26 @@ def main():
     print("Press Ctrl+C to stop the server")
     
     try:
-        # Start the server
-        subprocess.run(['npm', 'start'], cwd=dashboard_dir)
+        # Start the server and keep it running
+        process = subprocess.Popen(['node', 'server.js'], cwd=dashboard_dir)
+        
+        print(f"Server started with PID: {process.pid}")
+        print("Server is running...")
+        
+        # Keep the script running until interrupted
+        while True:
+            time.sleep(1)
+            # Check if process is still running
+            if process.poll() is not None:
+                print(f"Server process exited with code: {process.returncode}")
+                break
+                
     except KeyboardInterrupt:
         print("\nShutting down dashboard server...")
+        if 'process' in locals():
+            process.terminate()
+            process.wait()
+        print("Server stopped")
     except subprocess.CalledProcessError as e:
         print(f"Error starting dashboard: {e}")
         sys.exit(1)
