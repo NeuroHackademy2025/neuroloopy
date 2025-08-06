@@ -4,6 +4,7 @@ from pathlib import Path
 import nibabel as nib
 import glob
 import time
+import re
 
 class ref_img:
     '''
@@ -74,14 +75,15 @@ class rt_img:
         self.file = glob.glob(self.dir + '/*dcm')[-1] # most recent DICOM in folder
         # print('dicom to convert: ' + self.file)
         try:
-            self.rep = int(self.file.split('_')[2].split('.dcm')[0])-1
+            # self.rep = int(self.file.split('_')[2].split('.dcm')[0])-1
+            self.rep = int(re.sub(r'\D+','',self.file.split('/')[-1]))
         except Exception as e:
             print('[on_created] ERROR parsing rep number from ', self.file)
             print(e)
         print('printing rep...')
         print(self.rep)
         # Convert to NIFTI
-        self.raw_nii = convert_dicom_to_nii(self.file, self.proc_dir, self.dir, self.file.split('_')[-2].split('.dcm')[0])
+        self.raw_nii = convert_dicom_to_nii(self.file, self.proc_dir, self.dir, self.rep)
 
     def mask(self, atlas):
         '''
@@ -170,7 +172,7 @@ class rt_img:
             out_roi[voxel] = mni_img[roi_voxels[voxel,0],roi_voxels[voxel,1],roi_voxels[voxel,2]]
         return out_roi
 
-def convert_dicom_to_nii(dcm_file,dcm_dir,nii_outdir,TR_num):
+def convert_dicom_to_nii(dcm_file,nii_outdir,dcm_dir,TR_num):
     '''
     Takes a DICOM image and converts to NIFTI. Basically a Python wrapper for dcm2niix.
 
@@ -184,14 +186,11 @@ def convert_dicom_to_nii(dcm_file,dcm_dir,nii_outdir,TR_num):
         Path to save the converted NIFTI to.
     
     '''
-    os.system('cp ' + dcm_dir + '/' + dcm_file + ' ' + nii_outdir)
-    # os.chdir(nii_outdir)
-
     # Copy single dicom to proc dir with a predictable name
     single_dicom_path = os.path.join(nii_outdir, 'current.dcm')
-    os.system('cp ' + os.path.join(dcm_dir, dcm_file) + ' ' + single_dicom_path)
+    os.system('cp ' + dcm_file + ' ' + single_dicom_path)
     # Convert
-    os.system('dcm2niix -b y -z n -x n -t n -m n -f %d_%s_' + TR_num + ' -o ' + nii_outdir + ' -s y -v n ' + single_dicom_path)
+    os.system('dcm2niix -b y -z n -x n -t n -m n -f %d_%s_' + str(TR_num) + ' -o ' + nii_outdir + ' -s y -v n ' + single_dicom_path)
     proc_epis = glob.glob(nii_outdir+'/*.nii') 
     new_nii_file = max(proc_epis, key=os.path.getctime).split('/')[-1]
     print ('returning new_nii_file')
