@@ -7,7 +7,7 @@ def apply_classifier(clf, data, num_roi_voxels, logging_bool=False):
     Parameters
     ----------
     clf : object
-        Trained classifier object with a `predict` method and `ca.estimates` attribute.
+        Trained classifier object with a `predict` method and `predict_evidence` attribute.
     data : array-like, shape (num_roi_voxels,)
         1D array of ROI voxel values to classify.
     num_roi_voxels : int
@@ -17,12 +17,15 @@ def apply_classifier(clf, data, num_roi_voxels, logging_bool=False):
 
     Returns
     -------
-    estimates : array-like
-        Classifier confidence or probability estimates from the `clf.ca.estimates` attribute.
+    clf_estimates : array-like
+        Classifier confidence or probability estimates from the `predict` and `predict_evidence` attributes.
     """
     if not logging_bool:
-        clf.predict(np.ndarray((1, num_roi_voxels), buffer=data))
+        if config['predict_type'] == 'category':
+            clf_result = clf.predict(np.ndarray((1, num_roi_voxels), buffer=data))
+        elif config['predict_type'] == 'prob_est':
+            clf_result = clf.predict_evidence(np.ndarray((1, num_roi_voxels), buffer=data))
     else:
-        clf.predict(np.random.normal(0, 1, (1, num_roi_voxels)))
+        clf_result = clf.predict(np.random.normal(0, 1, (1, num_roi_voxels)))
         print("[DEBUGGING MODE]: classifier values are random")
-    return clf.ca.estimates
+    return clf_result
