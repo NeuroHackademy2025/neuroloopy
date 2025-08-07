@@ -22,9 +22,26 @@ neuroloopy/
 
 ## Quick Start
 
-### 1. Start the Dashboard Server
+### 1. Clone and Setup (For Teammates)
 
-**Option A: Using the launcher script (Recommended)**
+**Step 1: Clone the repository**
+```bash
+git clone https://github.com/NeuroHackademy2025/neuroloopy.git
+cd neuroloopy
+git checkout dashboard-feature
+```
+
+**Step 2: Run the setup script**
+```bash
+./setup_dashboard.sh
+```
+
+**Step 3: Access the dashboard**
+Open your browser to: **http://localhost:8080**
+
+### 2. Alternative Manual Setup
+
+**Option A: Using the launcher script**
 ```bash
 python3 start_dashboard.py
 ```
