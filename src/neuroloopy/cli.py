@@ -1,79 +1,3 @@
-#!/usr/bin/env python3
-"""
-Command line interface for neuroloopy real-time fMRI processing.
-"""
-
-import argparse
-import sys
-import time
-import os
-from pathlib import Path
-
-
-def parse_arguments():
-    """Parse command line arguments."""
-    parser = argparse.ArgumentParser(
-        description='neuroloopy Real-time fMRI Processing',
-        formatter_class=argparse.RawDescriptionHelpFormatter,
-        epilog="""
-Examples:
-  neuroloopy --session 2 --subjectid sub001
-  neuroloopy --session 3 --debug --logging
-  neuroloopy --session 2 --dashboard --config my_config
-
-For more information, see the documentation.
-        """
-    )
-    
-    parser.add_argument('-s', '--subjectid', 
-                       help='Subject ID (default: %(default)s)', 
-                       default='demo')
-    parser.add_argument('-sess', '--session', 
-                       help='Scan session number', 
-                       required=True)
-    parser.add_argument('-c', '--config', 
-                       help='Configuration file name (without .yaml extension) (default: %(default)s)', 
-                       default='default')
-    parser.add_argument('-d', '--debug', 
-                       help='Enable debugging mode', 
-                       action='store_true', 
-                       default=False)
-    parser.add_argument('-l', '--logging', 
-                       help='Enable logging', 
-                       action='store_true', 
-                       default=False)
-    parser.add_argument('-b', '--dashboard', 
-                       help='Enable dashboard display', 
-                       action='store_true', 
-                       default=False)
-    parser.add_argument('-r', '--startrun', 
-                       help='Starting run number (default: %(default)s)', 
-                       default='1')
-    
-    return parser.parse_args()
-
-
-def check_config_file(config_path):
-    """Check if config file exists, create template if needed."""
-    if not os.path.exists(config_path):
-        print(f"Config file not found: {config_path}")
-        
-        # Check if config directory exists
-        config_dir = os.path.dirname(config_path)
-        if not os.path.exists(config_dir):
-            os.makedirs(config_dir)
-            print(f"Created config directory: {config_dir}")
-        
-        # Generate template
-        from .utils import generate_config_template
-        template_path = os.path.join(config_dir, "template.yaml")
-        generate_config_template(template_path)
-        print(f"Generated template config file: {template_path}")
-        print("Please copy and customize this template for your experiment.")
-        return False
-    return True
-
-
 def main():
     """Main entry point for the neuroloopy CLI."""
     print("="*60)
@@ -83,6 +7,9 @@ def main():
     # Parse command line arguments
     args = parse_arguments()
     print(f"Arguments: {vars(args)}")
+    
+    # Initialize observer and handler variables for cleanup
+    event_observer = None
     
     try:
         # Check and set up configuration
@@ -116,7 +43,7 @@ def main():
         print("-" * 60)
         
         # Start the watcher with all configuration
-        start_watcher(
+        event_observer, event_handler = start_watcher(
             config=config,
             subject_id=args.subjectid,
             session=args.session,
@@ -145,9 +72,12 @@ def main():
         import traceback
         traceback.print_exc()
         sys.exit(1)
+    finally:
+        # Clean shutdown
+        if event_observer is not None:
+            print("Stopping file observer...")
+            event_observer.stop()
+            event_observer.join()
+            print("✓ Observer stopped")
     
     print("neuroloopy shut down successfully.")
-
-
-if __name__ == '__main__':
-    main()
