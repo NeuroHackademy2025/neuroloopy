@@ -21,32 +21,32 @@ class InstaWatcher(PatternMatchingEventHandler):
     def __init__(self, config):
         self.rep_start_times = {}
 
-        self.script_start_time = config.get('script_start_time', None)
+        self.script_start_time = config.get('script_start_time', None) #INDOC
 
-        file_pattern = '*.dcm' 
-        #file_pattern = '*.' + config['subject-id'] + '_' + str(config['session-number']) + '/*.dcm'
-        print('Looking for file pattern: ' + file_pattern)
-        PatternMatchingEventHandler.__init__(self, 
-            patterns=[file_pattern],
-            ignore_patterns=[],
-            ignore_directories=False)
+        # file_pattern = '*.dcm' 
+        # #file_pattern = '*.' + config['subject-id'] + '_' + str(config['session-number']) + '/*.dcm'
+        # print('Looking for file pattern: ' + file_pattern)
+        # PatternMatchingEventHandler.__init__(self, 
+        #     patterns=[file_pattern],
+        #     ignore_patterns=[],
+        #     ignore_directories=False)
 
-        #when this is going it is running a multiprocessing pool, each file that comes in is a volume or a TR or a volume, it will do all of these in parallel,
-        # multiprocessing workers
-        self.pool = mp.Pool()
+        # #when this is going it is running a multiprocessing pool, each file that comes in is a volume or a TR or a volume, it will do all of these in parallel,
+        # # multiprocessing workers
+        # self.pool = mp.Pool()
 
         # timings: these are user set timing parameters used later to tell neuroloopy the trial structure, you need to tell it a trial is this many TRs long etc, the parameters to set up the trial structure
-        self.run_count = int(config['start-run'])-1
-        self.baseline_trs = config['baseline-trs']
+        self.run_count = int(config['start-run'])-1 #ADDED
+        self.baseline_trs = config['baseline-trs'] #INDOC
         # defining what type of feedback you want, an argument you put into the config file to make it flexible, there two options: continious (throughout a period it is cont. updating) or intermittent (a single value of feedback per trial) - intermittent is more common
         try:
-            feedback_mode = config['feedback-mode'].lower()
+            feedback_mode = config['feedback-mode'].lower() #INDOC
         except:
             feedback_mode = 'continuous'
             #just need to tell it how long a run is,
         if feedback_mode == 'continuous':
-            self.feedback_trs = config['feedback-trs']
-            self.run_trs = self.baseline_trs+self.feedback_trs
+            self.feedback_trs = config['feedback-trs'] #INDOC
+            self.run_trs = self.baseline_trs+self.feedback_trs #ADDED
             self.feedback_calc_trs = np.arange(self.baseline_trs,self.feedback_trs+self.baseline_trs)
             #calculating feedback once per trials, the specific components of a trial, encoding period, cue, in the config file put in a numerical value for how many TRs there are, breaking it down by the components of a trial        
         elif feedback_mode == 'intermittent': # TODO: turn into dictionary input in .config & check
@@ -90,12 +90,14 @@ class InstaWatcher(PatternMatchingEventHandler):
         self.standard_dir = os.getcwd()+'/standard'
         # alinging it to mni brain - all things that would only be called if you set in the config file
         self.mni_template = glob.glob(self.standard_dir+'/*2mm_brain.nii.gz')[0]
-        # optional: target class can be specified in backend
-        # pattern classification: trained to distinguish whatever you want, trained on 4 classes, you get an output
-        try:
-            self.target_class = int(np.loadtxt(self.ref_dir+'/class.txt'))
-        except:
-            self.target_class = -1
+        
+        # # optional: target class can be specified in backend
+        # # pattern classification: trained to distinguish whatever you want, trained on 4 classes, you get an output
+        # try:
+        #     self.target_class = int(np.loadtxt(self.ref_dir+'/class.txt'))
+        # except:
+        #     self.target_class = -1
+        
         # as the processesing happens the processing directory is where the conversion is happening and then it gets deleted
         self.proc_dir = os.getcwd()+'/proc' #TODO: opt flag to save these temp files
         # the watch_directory is a path name that you put in the configuration file and its a path name to a folder where the real time data is going to show up
@@ -106,6 +108,7 @@ class InstaWatcher(PatternMatchingEventHandler):
         # logic and initialization: collecting meta data from reference imaging
         self.slice_dims = (self.rfi_data.shape[0],self.rfi_data.shape[1])
         self.num_slices = self.rfi_data.shape[2]
+        
         #TODO: point of making this more modular, doesn't have to be clf
         # actual classifier, loading and opening and reading file, so clf will be the actual object for classification
         self.clf = pickle.load(open(self.clf_file,'rb')) # actual classifier
@@ -123,6 +126,7 @@ class InstaWatcher(PatternMatchingEventHandler):
         #TODO: physical setup assumptions: ethernet cable
         # dw: is this a good place to print the post url?
 
+        # TODO: maybe add to utils??
         # event logging # when running scripts, can have it log different events, for debugging
         if config['logging_bool']:
             self.logging_bool = True
@@ -135,36 +139,36 @@ class InstaWatcher(PatternMatchingEventHandler):
         else:
             self.logging_bool = False
 
-        # dashboard display 
-        # set up a dashboard url and it will send information about the motion correction to a dashboard, monitor it through an html
-        # lets you view real time progress in an external browser at this url path if you choose to have it
-        if config['dashboard_bool']: ## gui ?? monitoring of motioncorrection for real time monitoring #TODO: figure out how to implement
-            try:
-                self.dashboard_base_url = config['dashboard-base-url']
-                self.dashboard_mc_url = self.dashboard_base_url+'/mc_data'
-                self.dashboard_clf_url = self.dashboard_base_url+'/clf_data'
-                self.dashboard_shutdown_url = self.dashboard_base_url+'/shutdown'
-                self.try_dashboard_connection = True
-                self.dashboard_bool = True
-            except:
-                self.try_dashboard_connection = False
-                self.dashboard_bool = False
-        else:
-            self.try_dashboard_connection = False
-            self.dashboard_bool = False
+        # # dashboard display 
+        # # set up a dashboard url and it will send information about the motion correction to a dashboard, monitor it through an html
+        # # lets you view real time progress in an external browser at this url path if you choose to have it
+        # if config['dashboard_bool']: ## gui ?? monitoring of motioncorrection for real time monitoring #TODO: figure out how to implement
+        #     try:
+        #         self.dashboard_base_url = config['dashboard-base-url']
+        #         self.dashboard_mc_url = self.dashboard_base_url+'/mc_data'
+        #         self.dashboard_clf_url = self.dashboard_base_url+'/clf_data'
+        #         self.dashboard_shutdown_url = self.dashboard_base_url+'/shutdown'
+        #         self.try_dashboard_connection = True
+        #         self.dashboard_bool = True
+        #     except:
+        #         self.try_dashboard_connection = False
+        #         self.dashboard_bool = False
+        # else:
+        #     self.try_dashboard_connection = False
+        #     self.dashboard_bool = False
 
     # at this point we've read in our classifier object and we've opened it, as long as you are not setting it to log, its going to use real data not random data, will take the classifier object that will be a predict function, setting up classifier outside this, could set to base predict function
     # more common way overwtite what is written in to sklearn, not all the classes will sum to 1, from zero to 1 how likely is the current thing you are classifying to 1, using ROI voxel numbers, average data from the trial
     # a standard sklearn will have this written in
     # the base one is the percent chance and then they have to sum to one
-    # take whatever model you feed and apply it to your data
-    def apply_classifier(self, data): #apply classifier obj to volume data
-        if not(self.logging_bool):
-            self.clf.predict(np.ndarray((1,self.num_roi_voxels),buffer=data)) #TODO: figure out more generalized way of implementing this (e.g., sklearn)
-        else:
-            self.clf.predict(np.random.normal(0,1,(1,self.num_roi_voxels))) #debug mode
-            print('debugging mode: classifier value is random')
-        return self.clf.ca.estimates
+    # # take whatever model you feed and apply it to your data
+    # # def apply_classifier(self, data): #apply classifier obj to volume data
+    #     if not(self.logging_bool):
+    #         self.clf.predict(np.ndarray((1,self.num_roi_voxels),buffer=data)) #TODO: figure out more generalized way of implementing this (e.g., sklearn)
+    #     else:
+    #         self.clf.predict(np.random.normal(0,1,(1,self.num_roi_voxels))) #debug mode
+    #         print('debugging mode: classifier value is random')
+    #     return self.clf.ca.estimates
 
     def reset_img_arrays(self): # reset all meta data
         self.img_status_array = np.zeros(self.run_trs)
@@ -182,125 +186,125 @@ class InstaWatcher(PatternMatchingEventHandler):
     # 1) dcm2niix
     # 2) process volumes, motion correction *to_mni, map_voxels_to_roi
     # 3) save d process, detrending, apply classifier, saved clf output, reset for run
-    def on_created(self,event): #recog new file, start for new vol, start process, call preproc functions
-        on_created_start = time.time()
-        # is triggered by PatternMatchingEventHandler when dicom is created
-        print('[on_created] New file detected:')
-        print(event.src_path)
-        img_dir = event.src_path.rsplit('/', 1)[0]
-        # print('dicom directory: ' + img_dir)
-        img_file = event.src_path.rsplit('/')[-1]
-        # print('dicom to convert: ' + img_file)
-        try:
-            rep = int(img_file.split('_')[2].split('.dcm')[0])-1
-        except Exception as e:
-            print('[on_created] ERROR parsing rep number from ', img_file)
-            print(e)
-            return
-        print('printing rep...')
-        print(rep)
-        # parts = os.path.basename(img_file).split('_')
-        # print(parts)
-        # if len(parts) >= 2:
-        #     try:
-        #         rep = int(parts[2]) - 1  # Use third underscore-separated part as volume number
-        #     except ValueError:
-        #         logging.error("Could not parse repetition number from filename: %s", img_file)
-        #         return
-        # else:
-        #     logging.error("Unexpected filename format: %s", img_file)
-        #     return
+    # def on_created(self,event): #recog new file, start for new vol, start process, call preproc functions
+    #     on_created_start = time.time()
+    #     # is triggered by PatternMatchingEventHandler when dicom is created
+    #     print('[on_created] New file detected:')
+    #     print(event.src_path)
+    #     img_dir = event.src_path.rsplit('/', 1)[0]
+    #     # print('dicom directory: ' + img_dir)
+    #     img_file = event.src_path.rsplit('/')[-1]
+    #     # print('dicom to convert: ' + img_file)
+    #     try:
+    #         rep = int(img_file.split('_')[2].split('.dcm')[0])-1
+    #     except Exception as e:
+    #         print('[on_created] ERROR parsing rep number from ', img_file)
+    #         print(e)
+    #         return
+    #     print('printing rep...')
+    #     print(rep)
+    #     # parts = os.path.basename(img_file).split('_')
+    #     # print(parts)
+    #     # if len(parts) >= 2:
+    #     #     try:
+    #     #         rep = int(parts[2]) - 1  # Use third underscore-separated part as volume number
+    #     #     except ValueError:
+    #     #         logging.error("Could not parse repetition number from filename: %s", img_file)
+    #     #         return
+    #     # else:
+    #     #     logging.error("Unexpected filename format: %s", img_file)
+    #     #     return
 
-        # print "\n--- DEBUG: New DICOM detected ---"
-        # print "Full img_file path:", img_file
-        # try:
-        #     volume_index = img_file.split('_')[2]
-        #     output_name = img_file.split('_')[-1].split('.dcm')[0]
-        #     print "Extracted volume index:", volume_index
-        #     print "Planned NIfTI output base name:", output_name
-        # except Exception as e:
-        #     print "Error extracting volume/index info:", str(e)
+    #     # print "\n--- DEBUG: New DICOM detected ---"
+    #     # print "Full img_file path:", img_file
+    #     # try:
+    #     #     volume_index = img_file.split('_')[2]
+    #     #     output_name = img_file.split('_')[-1].split('.dcm')[0]
+    #     #     print "Extracted volume index:", volume_index
+    #     #     print "Planned NIfTI output base name:", output_name
+    #     # except Exception as e:
+    #     #     print "Error extracting volume/index info:", str(e)
 
 
-        self.raw_nii = convert_dicom_to_nii(img_file,self.proc_dir,img_dir,img_file.split('_')[-2].split('.dcm')[0],self.dcm2niix_dir)
-        os.system('rm ' + self.proc_dir + '/*.dcm')
+    #     self.raw_nii = convert_dicom_to_nii(img_file,self.proc_dir,img_dir,img_file.split('_')[-2].split('.dcm')[0],self.dcm2niix_dir)
+    #     os.system('rm ' + self.proc_dir + '/*.dcm')
 
-        if ('SBRef' not in self.raw_nii):
-            print('Passed SBRef check!')
-            if self.logging_bool:
-                print('Writing log entry...')
-                write_log(self.log_file, self.log_file_time, 'mc_start', rep)
-            print('Starting async processing...')
+    #     if ('SBRef' not in self.raw_nii):
+    #         print('Passed SBRef check!')
+    #         if self.logging_bool:
+    #             print('Writing log entry...')
+    #             write_log(self.log_file, self.log_file_time, 'mc_start', rep)
+    #         print('Starting async processing...')
 
-            self.rep_start_times[rep] = time.time()
+    #         self.rep_start_times[rep] = time.time()
             
-            #using what we set up earlier with the parallel multiprocessing, giving it all the arguments your processing needs
-            self.pool.apply_async(func = process_volume,
-                args = (self.raw_nii,self.clf.voxel_indices,
-                    rep,self.rfi_file,self.proc_dir,self.ref_header,
-                    self.ref_affine, self.mc_mode, self.warp_file, self.mni_template),
-                callback = self.save_processed_roi)
+    #         #using what we set up earlier with the parallel multiprocessing, giving it all the arguments your processing needs
+    #         self.pool.apply_async(func = process_volume,
+    #             args = (self.raw_nii,self.clf.voxel_indices,
+    #                 rep,self.rfi_file,self.proc_dir,self.ref_header,
+    #                 self.ref_affine, self.mc_mode, self.warp_file, self.mni_template),
+    #             callback = self.save_processed_roi)
 
-        on_created_end = time.time()
-        on_created_elapsed = on_created_end - on_created_start
-        print('[on_created] Finished in %.3f seconds' % on_created_elapsed)
+    #     on_created_end = time.time()
+    #     on_created_elapsed = on_created_end - on_created_start
+    #     print('[on_created] Finished in %.3f seconds' % on_created_elapsed)
 
 
     #calls process volume, the first function that is called in on created is to convert the dicom to the nifti
-    def save_processed_roi(self, roi_and_rep_data):
-        try:
-            print('DEBUG save_processed_roi called with rep\n', roi_and_rep_data)
-            (roi_data,rep) = roi_and_rep_data 
-            if self.logging_bool: write_log(self.log_file, self.log_file_time, 'mc_end', rep)
-            self.raw_roi_array[:,rep] = roi_data
-            print('roi_data saved into raw_roi_array successfuly!')
+    # def save_processed_roi(self, roi_and_rep_data):
+    #     try:
+    #         print('DEBUG save_processed_roi called with rep\n', roi_and_rep_data)
+    #         (roi_data,rep) = roi_and_rep_data 
+    #         if self.logging_bool: write_log(self.log_file, self.log_file_time, 'mc_end', rep)
+    #         self.raw_roi_array[:,rep] = roi_data
+    #         print('roi_data saved into raw_roi_array successfuly!')
 
-            print("rep is", rep)
-            print("feedback_calc_trs is", self.feedback_calc_trs)
-            print("rep in feedback_calc_trs?", rep in self.feedback_calc_trs)
+    #         print("rep is", rep)
+    #         print("feedback_calc_trs is", self.feedback_calc_trs)
+    #         print("rep in feedback_calc_trs?", rep in self.feedback_calc_trs)
 
-            if rep == (self.baseline_trs-1):
-                self.voxel_sigmas = np.sqrt(np.var(self.raw_roi_array[:,:rep+1],1))
-                self.voxel_sigmas[np.where(self.voxel_sigmas==0)] = 1e6 # ignore 'zero variance' voxels
-                print('DEBUG voxel_sigmas:', self.voxel_sigmas)
-                print('DEBUG voxel_sigmas shape:', self.voxel_sigmas.shape)
-                print('DEBUG min/max voxel_sigmas:', np.min(self.voxel_sigmas), np.max(self.voxel_sigmas))
-            if rep in self.feedback_calc_trs:
-                self.feedback_count += 1
-                detrend_roi_array = detrend(self.raw_roi_array[:,:rep+1],1)
-                zscore_avg_roi = np.mean(detrend_roi_array[:,-self.moving_avg_trs:],1)/self.voxel_sigmas
-                clf_out = self.apply_classifier(zscore_avg_roi)
-                print('clf_out is ' + str(clf_out))
-                out_data = np.append(clf_out, self.target_class)
-                self.send_clf_outputs(out_data)
+    #         if rep == (self.baseline_trs-1):
+    #             self.voxel_sigmas = np.sqrt(np.var(self.raw_roi_array[:,:rep+1],1))
+    #             self.voxel_sigmas[np.where(self.voxel_sigmas==0)] = 1e6 # ignore 'zero variance' voxels
+    #             print('DEBUG voxel_sigmas:', self.voxel_sigmas)
+    #             print('DEBUG voxel_sigmas shape:', self.voxel_sigmas.shape)
+    #             print('DEBUG min/max voxel_sigmas:', np.min(self.voxel_sigmas), np.max(self.voxel_sigmas))
+    #         if rep in self.feedback_calc_trs:
+    #             self.feedback_count += 1
+    #             detrend_roi_array = detrend(self.raw_roi_array[:,:rep+1],1)
+    #             zscore_avg_roi = np.mean(detrend_roi_array[:,-self.moving_avg_trs:],1)/self.voxel_sigmas
+    #             clf_out = self.apply_classifier(zscore_avg_roi)
+    #             print('clf_out is ' + str(clf_out))
+    #             out_data = np.append(clf_out, self.target_class)
+    #             self.send_clf_outputs(out_data)
 
-                feedback_time = time.time()
-                if rep in self.rep_start_times:
-                    latency = feedback_time - self.rep_start_times[rep]
-                    print("[TIMER] Time to feedback for rep {}: {:.2f} seconds".format(rep, latency))
+    #             feedback_time = time.time()
+    #             if rep in self.rep_start_times:
+    #                 latency = feedback_time - self.rep_start_times[rep]
+    #                 print("[TIMER] Time to feedback for rep {}: {:.2f} seconds".format(rep, latency))
                                     
-                print('feedback sent', time.strftime('%H:%M:%S'))
+    #             print('feedback sent', time.strftime('%H:%M:%S'))
 
-                if self.script_start_time is not None:
-                    total_runtime = time.time() - self.script_start_time
-                    print("[TIMER] Total time from script start to feedback: {:.2f} seconds".format(total_runtime))
+    #             if self.script_start_time is not None:
+    #                 total_runtime = time.time() - self.script_start_time
+    #                 print("[TIMER] Total time from script start to feedback: {:.2f} seconds".format(total_runtime))
 
-                if self.logging_bool: write_log(self.log_file, self.log_file_time, 'fb_sent', rep)
+    #             if self.logging_bool: write_log(self.log_file, self.log_file_time, 'fb_sent', rep)
 
-            # dashboard outputs 
-            if self.dashboard_bool:
-                try:
-                    self.check_for_dashboard(rep)
-                except:
-                    print('dashboard error:', e)
-                    self.dashboard_bool = False
+    #         # dashboard outputs 
+    #         if self.dashboard_bool:
+    #             try:
+    #                 self.check_for_dashboard(rep)
+    #             except:
+    #                 print('dashboard error:', e)
+    #                 self.dashboard_bool = False
 
-            if rep == (self.run_trs-1):
-                self.reset_for_next_run()
-        except Exception as e:
-            import traceback
-            print("ERROR in save_processed_roi:")
-            print(traceback.format_exc())
+    #         if rep == (self.run_trs-1):
+    #             self.reset_for_next_run()
+    #     except Exception as e:
+    #         import traceback
+    #         print("ERROR in save_processed_roi:")
+    #         print(traceback.format_exc())
 
     def send_clf_outputs(self, out_data):
         payload = {"clf_outs": list(out_data[:-1]),
@@ -313,170 +317,170 @@ class InstaWatcher(PatternMatchingEventHandler):
         except:
             pass
 
-    def check_for_dashboard(self, rep):
-        if rep >= (self.baseline_trs-1):
-            detrend_roi_array = detrend(self.raw_roi_array[:,:rep+1],1)
-            print('roi array detrended')    # dw
-            zscore_avg_roi = np.mean(detrend_roi_array[:,-self.moving_avg_trs:],1)/self.voxel_sigmas
-            print('zscore avg roi is ' + str(zscore_avg_roi))   # dw
-            clf_out = self.apply_classifier(zscore_avg_roi)
-            post_dashboard_clf_outs(clf_out[0], rep, self.dashboard_clf_url)
-        mc_params_file = self.proc_dir +'/mc_params_' + str(rep+1).zfill(3) + '.txt'            
-        mc_params = np.loadtxt(mc_params_file)
-        post_dashboard_mc_params(mc_params, rep, self.dashboard_mc_url)
+    # def check_for_dashboard(self, rep):
+    #     if rep >= (self.baseline_trs-1):
+    #         detrend_roi_array = detrend(self.raw_roi_array[:,:rep+1],1)
+    #         print('roi array detrended')    # dw
+    #         zscore_avg_roi = np.mean(detrend_roi_array[:,-self.moving_avg_trs:],1)/self.voxel_sigmas
+    #         print('zscore avg roi is ' + str(zscore_avg_roi))   # dw
+    #         clf_out = self.apply_classifier(zscore_avg_roi)
+    #         post_dashboard_clf_outs(clf_out[0], rep, self.dashboard_clf_url)
+    #     mc_params_file = self.proc_dir +'/mc_params_' + str(rep+1).zfill(3) + '.txt'            
+    #     mc_params = np.loadtxt(mc_params_file)
+    #     post_dashboard_mc_params(mc_params, rep, self.dashboard_mc_url)
 
-    def reset_for_next_run(self):
-        if self.try_dashboard_connection:
-            self.dashboard_bool = True
-        self.run_count += 1
-        if self.archive_bool:
-            for target_dir in [self.proc_dir, self.watch_dir]:
-                if self.archive_bool:
-                    run_dir = self.archive_dir+'/run_'+str(self.run_count).zfill(2)
-                    if not(os.path.exists(run_dir)):
-                        os.mkdir(run_dir)
-                    if target_dir == self.proc_dir:
-                        os.system('cat '+target_dir+'/*.txt > '+run_dir+'/mc_params.txt 2>/dev/null')
-                        os.system('rm '+target_dir+'/*.txt 2>/dev/null')
-                        os.system('mv '+target_dir+'/*.* '+run_dir+' 2>/dev/null')
-                    elif target_dir == self.watch_dir:
-                        os.system('mv '+self.watch_dir+'/*/*.dcm '+run_dir+' 2>/dev/null')
-                os.system('rm '+target_dir+'/*.* 2>/dev/null')
-        self.reset_img_arrays()
+    # def reset_for_next_run(self): TODO: put in watcher.py
+    #     if self.try_dashboard_connection:
+    #         self.dashboard_bool = True
+    #     self.run_count += 1
+    #     if self.archive_bool:
+    #         for target_dir in [self.proc_dir, self.watch_dir]:
+    #             if self.archive_bool:
+    #                 run_dir = self.archive_dir+'/run_'+str(self.run_count).zfill(2)
+    #                 if not(os.path.exists(run_dir)):
+    #                     os.mkdir(run_dir)
+    #                 if target_dir == self.proc_dir:
+    #                     os.system('cat '+target_dir+'/*.txt > '+run_dir+'/mc_params.txt 2>/dev/null')
+    #                     os.system('rm '+target_dir+'/*.txt 2>/dev/null')
+    #                     os.system('mv '+target_dir+'/*.* '+run_dir+' 2>/dev/null')
+    #                 elif target_dir == self.watch_dir:
+    #                     os.system('mv '+self.watch_dir+'/*/*.dcm '+run_dir+' 2>/dev/null')
+    #             os.system('rm '+target_dir+'/*.* 2>/dev/null')
+    #     self.reset_img_arrays()
 
 #### STANDALONE FUNCTIONS ####
-def process_volume(raw_nii, roi_voxels, rep, rfi_file,
-    proc_dir, ref_header, ref_affine, mc_mode, warp_file, mni_template):
-    try:
-        print("DEBUG process_volume started for rep:")
-        print(rep)
+# def process_volume(raw_nii, roi_voxels, rep, rfi_file,
+#     proc_dir, ref_header, ref_affine, mc_mode, warp_file, mni_template):
+#     try:
+#         print("DEBUG process_volume started for rep:")
+#         print(rep)
 
-        temp_file = proc_dir +'/'+raw_nii #proc_dir + '/img_' + str(rep+1).zfill(3) + '.nii.gz'
-        mc_file = proc_dir + '/img_mc_' + str(rep+1).zfill(3) + '.nii.gz'
-        mc_params_file = proc_dir +'/mc_params_' + str(rep+1).zfill(3) + '.txt'
+#         temp_file = proc_dir +'/'+raw_nii #proc_dir + '/img_' + str(rep+1).zfill(3) + '.nii.gz'
+#         mc_file = proc_dir + '/img_mc_' + str(rep+1).zfill(3) + '.nii.gz'
+#         mc_params_file = proc_dir +'/mc_params_' + str(rep+1).zfill(3) + '.txt'
 
-        print('DEBUG temp_file:')
-        print(temp_file)
-        print('DEBUG mc_file:')
-        print(mc_file)
-        print('DEBUG mc_mode:')
-        print(mc_mode)
+#         print('DEBUG temp_file:')
+#         print(temp_file)
+#         print('DEBUG mc_file:')
+#         print(mc_file)
+#         print('DEBUG mc_mode:')
+#         print(mc_mode)
 
 
-        print('Starting motion correction...')
-        start_time = time.time()
-        # nib.save(nib.Nifti1Image(raw_img, ref_affine, header=ref_header), temp_file)
-        if mc_mode == 'afni':
-            #print('mc_mode is afni')
-            os.system('3dvolreg -prefix '+mc_file+' -base '+rfi_file+' -1Dfile '+mc_params_file+' '+temp_file+' 2>/dev/null')
-        elif mc_mode == 'fsl':
-            print('DEBUG running mcflirt')
-            os.system('mcflirt -in '+temp_file+' -dof 6 -reffile '+rfi_file+' -out '+mc_file)
-            #print('mc_mode is fsl')
-        elif mc_mode == 'none':
-            os.system('cp '+temp_file+' '+mc_file)
-            #print('mc_mode is none')
+#         print('Starting motion correction...')
+#         start_time = time.time()
+#         # nib.save(nib.Nifti1Image(raw_img, ref_affine, header=ref_header), temp_file)
+#         if mc_mode == 'afni':
+#             #print('mc_mode is afni')
+#             os.system('3dvolreg -prefix '+mc_file+' -base '+rfi_file+' -1Dfile '+mc_params_file+' '+temp_file+' 2>/dev/null')
+#         elif mc_mode == 'fsl':
+#             print('DEBUG running mcflirt')
+#             os.system('mcflirt -in '+temp_file+' -dof 6 -reffile '+rfi_file+' -out '+mc_file)
+#             #print('mc_mode is fsl')
+#         elif mc_mode == 'none':
+#             os.system('cp '+temp_file+' '+mc_file)
+#             #print('mc_mode is none')
 
-        end_time = time.time()
-        print("Time motion correct: {:.2f} seconds".format(end_time - start_time))
+#         end_time = time.time()
+#         print("Time motion correct: {:.2f} seconds".format(end_time - start_time))
 
-        print('DEBUG mc_file:', mc_file, type(mc_file))
-        print('DEBUG mni_template:', mni_template, type(mni_template))
-        print('DEBUG warp_file:', warp_file, type(warp_file))
+#         print('DEBUG mc_file:', mc_file, type(mc_file))
+#         print('DEBUG mni_template:', mni_template, type(mni_template))
+#         print('DEBUG warp_file:', warp_file, type(warp_file))
 
-        # convert to mni space
-        print('Converting to mni')
-        start_time = time.time()
+#         # convert to mni space
+#         print('Converting to mni')
+#         start_time = time.time()
 
-        transformed_epi = proc_dir + '/img_mni_' + str(rep+1).zfill(3) + '.nii.gz'
+#         transformed_epi = proc_dir + '/img_mni_' + str(rep+1).zfill(3) + '.nii.gz'
 
-        # os.system(
-        #     "antsApplyTransforms -d 3 -i "
-        #     + mc_file
-        #     + " -r "
-        #     + mni_template
-        #     + " -o "
-        #     + transformed_epi
-        #     + " -t "
-        #     + warp_file
-        #     + " -n Linear"
-        # )
+#         # os.system(
+#         #     "antsApplyTransforms -d 3 -i "
+#         #     + mc_file
+#         #     + " -r "
+#         #     + mni_template
+#         #     + " -o "
+#         #     + transformed_epi
+#         #     + " -t "
+#         #     + warp_file
+#         #     + " -n Linear"
+#         # )
 
-        os.system(
-            "antsApplyTransforms -d 3 -i "
-            + mc_file
-            + " -r "
-            + mni_template
-            + " -o "
-            + transformed_epi
-            + " -n Linear"
-            + " -t "
-            + warp_file
-        )
-        mni_img = nib.load(transformed_epi)
+#         os.system(
+#             "antsApplyTransforms -d 3 -i "
+#             + mc_file
+#             + " -r "
+#             + mni_template
+#             + " -o "
+#             + transformed_epi
+#             + " -n Linear"
+#             + " -t "
+#             + warp_file
+#         )
+#         mni_img = nib.load(transformed_epi)
 
-        end_time = time.time()
-        print("Time to convert to MNI: {:.2f} seconds".format(end_time - start_time))
+#         end_time = time.time()
+#         print("Time to convert to MNI: {:.2f} seconds".format(end_time - start_time))
 
-        # extract voxel indicies
-        roi_data = map_voxels_to_roi(mni_img.get_data(),roi_voxels)
-        print('DEBUG roi_data:', roi_data)   
-        print('DEBUG non-zero voxels in roi_data:', np.count_nonzero(roi_data))
-        print('DEBUG process_volume finished successfuly for rep')
-        print(rep)
-        return (roi_data, rep)
+#         # extract voxel indicies
+#         roi_data = map_voxels_to_roi(mni_img.get_data(),roi_voxels)
+#         print('DEBUG roi_data:', roi_data)   
+#         print('DEBUG non-zero voxels in roi_data:', np.count_nonzero(roi_data))
+#         print('DEBUG process_volume finished successfuly for rep')
+#         print(rep)
+#         return (roi_data, rep)
 
-    except Exception as e:
-        print('[ERROR] Exception in process_volume for rep:')
-        print(rep)
-        print(e)
-        return None
+#     except Exception as e:
+#         print('[ERROR] Exception in process_volume for rep:')
+#         print(rep)
+#         print(e)
+#         return None
 
-def map_voxels_to_roi(img, roi_voxels):
-    out_roi = np.zeros(roi_voxels.shape[0])
-    for voxel in range(roi_voxels.shape[0]):
-        out_roi[voxel] = img[roi_voxels[voxel,0],roi_voxels[voxel,1],roi_voxels[voxel,2]]
-    return out_roi
+# def map_voxels_to_roi(img, roi_voxels):
+#     out_roi = np.zeros(roi_voxels.shape[0])
+#     for voxel in range(roi_voxels.shape[0]):
+#         out_roi[voxel] = img[roi_voxels[voxel,0],roi_voxels[voxel,1],roi_voxels[voxel,2]]
+#     return out_roi
 
-def start_watcher(CONFIG, subject_id, session, config_name, debug_bool=False, logging_bool=False,
-        dashboard_bool=False, start_run=1):
-    CONFIG['subject-id'] = subject_id
-    CONFIG['session-number'] = session
-    CONFIG['config-name'] = config_name
-    CONFIG['debug-bool'] = debug_bool
-    CONFIG['logging_bool'] = logging_bool
-    CONFIG['dashboard_bool'] = dashboard_bool
-    CONFIG['start-run'] = start_run
-    # OBS_TIMEOUT = 0.01
-    OBS_TIMEOUT = 0.1 #dw make the observer time out longer
-    event_observer = PollingObserver(OBS_TIMEOUT)
-    # event_observer = Observer(OBS_TIMEOUT)
-    event_handler = InstaWatcher(CONFIG)
-    event_observer.schedule(event_handler,
-                            CONFIG['watch-dir'],
-                            recursive=True)
-    event_observer.start()
+# def start_watcher(CONFIG, subject_id, session, config_name, debug_bool=False, logging_bool=False,
+#         dashboard_bool=False, start_run=1):
+#     CONFIG['subject-id'] = subject_id
+#     CONFIG['session-number'] = session
+#     CONFIG['config-name'] = config_name
+#     CONFIG['debug-bool'] = debug_bool
+#     CONFIG['logging_bool'] = logging_bool
+#     CONFIG['dashboard_bool'] = dashboard_bool
+#     CONFIG['start-run'] = start_run
+#     # OBS_TIMEOUT = 0.01
+#     OBS_TIMEOUT = 0.1 #dw make the observer time out longer
+#     event_observer = PollingObserver(OBS_TIMEOUT)
+#     # event_observer = Observer(OBS_TIMEOUT)
+#     event_handler = InstaWatcher(CONFIG)
+#     event_observer.schedule(event_handler,
+#                             CONFIG['watch-dir'],
+#                             recursive=True)
+#     event_observer.start()
 
-# def start_remote_recon(CONFIG):
-#     RECON_SCRIPT = CONFIG['recon-script']
-#     os.chdir(CONFIG['watch-dir'])
-#     subprocess.Popen(RECON_SCRIPT, shell=True)
+# # def start_remote_recon(CONFIG):
+# #     RECON_SCRIPT = CONFIG['recon-script']
+# #     os.chdir(CONFIG['watch-dir'])
+# #     subprocess.Popen(RECON_SCRIPT, shell=True)
 
-def convert_dicom_to_nii(dcm_file,nii_outdir,dcm_dir,TR_num,dcm2niix_dir):
-    os.system('cp ' + dcm_dir + '/' + dcm_file + ' ' + nii_outdir)
-    os.chdir(nii_outdir)
+# def convert_dicom_to_nii(dcm_file,nii_outdir,dcm_dir,TR_num,dcm2niix_dir):
+#     os.system('cp ' + dcm_dir + '/' + dcm_file + ' ' + nii_outdir)
+#     os.chdir(nii_outdir)
 
-    # Copy single dicom to proc dir with a predictable name
-    single_dicom_path = os.path.join(nii_outdir, 'current.dcm')
-    os.system('cp ' + os.path.join(dcm_dir, dcm_file) + ' ' + single_dicom_path)
+#     # Copy single dicom to proc dir with a predictable name
+#     single_dicom_path = os.path.join(nii_outdir, 'current.dcm')
+#     os.system('cp ' + os.path.join(dcm_dir, dcm_file) + ' ' + single_dicom_path)
 
-    os.system('dcm2niix -b y -z n -x n -t n -m n -f %d_%s_' + TR_num + ' -o ' + nii_outdir + ' -s y -v n ' + single_dicom_path)
-    proc_epis = glob.glob(nii_outdir+'/*.nii') 
-    new_nii_file = max(proc_epis, key=os.path.getctime).split('/')[-1]
-    print ('returning new_nii_file')
-    print('[convert_dicom_to_nii] returning filename\n', new_nii_file)
-    os.remove(single_dicom_path)
-    return new_nii_file
+#     os.system('dcm2niix -b y -z n -x n -t n -m n -f %d_%s_' + TR_num + ' -o ' + nii_outdir + ' -s y -v n ' + single_dicom_path)
+#     proc_epis = glob.glob(nii_outdir+'/*.nii') 
+#     new_nii_file = max(proc_epis, key=os.path.getctime).split('/')[-1]
+#     print ('returning new_nii_file')
+#     print('[convert_dicom_to_nii] returning filename\n', new_nii_file)
+#     os.remove(single_dicom_path)
+#     return new_nii_file
 
 
 def write_log_header(log_file):
@@ -520,12 +524,12 @@ if __name__ == "__main__":
         CONFIG['log_file_time'] = int(np.floor(time.time()))
 
     # start realtime watcher
-    start_watcher(CONFIG, args.subjectid, args.session, args.config, args.debug, args.logging, args.dashboard, args.startrun)
-
+    # start_watcher(CONFIG, args.subjectid, args.session, args.config, args.debug, args.logging, args.dashboard, args.startrun)
+# 
     # # start remote recon server
     # if not(args.debug):
     #     start_remote_recon(CONFIG)
-
+# 
     # dummy loop for ongoing processes (or logging)
-    while True:
-        pass
+    # while True:
+        # pass
