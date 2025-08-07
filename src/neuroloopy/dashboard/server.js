@@ -314,7 +314,7 @@ app.use((err, req, res, next) => {
 });
 
 // Start server
-const PORT = process.env.PORT || 5001;
+const PORT = process.env.PORT || 8080;
 
 // Add error handling for the server
 server.on('error', (error) => {
