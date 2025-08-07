@@ -50,6 +50,7 @@ your_experiment/
 ├── ref/
 │   └── sub001/
 │       ├── sub001_rfi.nii.gz       # Reference functional image
+│       ├── sub001_clf.p       # Subject-specific classifier (if not using MNI)
 │       └── sub001_warp_displacement.nii.gz  # Warp file (if using MNI)
 ├── mni_clf/
 │   └── classifier_mni_clf.p   # Trained classifier
