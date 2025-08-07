@@ -34,6 +34,6 @@ Homepage = "https://github.com/NeuroHackademy2025/neuroloopy"
 Issues = "https://github.com/NeuroHackademy2025/neuroloopy/issues"
 
 [tool.setuptools.packages.find]
-where = ["src"]
+where = ["neuroloopy"]
 include = ["neuroloopy*"]
 exclude = ["tests*"]
