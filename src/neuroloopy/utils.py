@@ -456,8 +456,8 @@ def initialize_log(script_start_time, log_dir=None):
     if not os.path.exists(log_dir):
         os.makedirs(log_dir)
     log_file_time = int(np.floor(time.time()))
-    log_file_name = os.path(log_dir, str(log_file_time), '_event.log')
-    log_file = open(os.path.normpath(log_file_name),'w')
+    log_file_name = os.path.join(log_dir, str(log_file_time) + '_event.log')
+    log_file = open(os.path.normpath(log_file_name),'
     write_log_header(log_file)
     write_log(log_file, script_start_time, 'startup', 0)
 

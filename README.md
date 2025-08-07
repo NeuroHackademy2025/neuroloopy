@@ -1,0 +1,184 @@
+# neuroloopy
+![](docs/neuroloopy_logo_v2.png )<br>
+Real-time fMRI neurofeedback processing package for closed-loop experiments.
+
+## Features
+
+- Real-time DICOM file monitoring and processing
+- Motion correction (AFNI/FSL)
+- Spatial normalization to MNI space
+- Classifier-based neurofeedback
+- Configurable timing parameters
+- Logging and archiving capabilities
+- Debug mode for testing
+
+## Installation
+
+### From source
+
+1. Clone the repository:
+```bash
+git clone <your-repo-url>
+cd neuroloopy
+```
+
+2. Install in development mode:
+```bash
+pip install -e .
+```
+
+### Dependencies
+
+Required external software:
+- **AFNI** or **FSL** for motion correction
+- **ANTs** for spatial normalization (if using MNI template)
+- **dcm2niix** for DICOM to NIfTI conversion
+
+## Quick Start
+
+1. **Create configuration file:**
+```bash
+# This will create config/template.yaml if config/default.yaml doesn't exist
+neuroloopy --session 1 --subjectid demo
+```
+
+2. **Set up directory structure:**
+```
+your_experiment/
+├── config/
+│   └── default.yaml          # Your configuration file
+├── ref/
+│   └── sub001/
+│       ├── sub001_rfi.nii.gz       # Reference functional image
+│       ├── sub001_clf.p       # Subject-specific classifier (if not using MNI)
+│       └── sub001_warp_displacement.nii.gz  # Warp file (if using MNI)
+├── mni_clf/
+│   └── classifier_mni_clf.p   # Trained classifier
+├── standard/
+│   └── MNI152_T1_2mm_brain.nii.gz  # MNI template
+├── proc/                      # Processing directory (auto-created)
+├── log/                       # Log files (auto-created)
+└── archive/                   # Archived data (debug mode)
+```
+
+3. **Run neuroloopy:**
+```bash
+# Basic usage
+neuroloopy --session 2 --subjectid sub001
+
+# With debugging and logging
+neuroloopy --session 2 --subjectid sub001 --debug --logging
+
+# Custom configuration
+neuroloopy --session 2 --config my_experiment --dashboard
+```
+
+## Usage
+
+### Command Line Options
+
+```
+neuroloopy [OPTIONS]
+
+Options:
+  -s, --subjectid TEXT    Subject ID (default: demo)
+  -sess, --session TEXT   Scan session number [required]
+  -c, --config TEXT       Configuration file name without .yaml extension (default: default)
+  -d, --debug            Enable debugging mode
+  -l, --logging          Enable logging
+  -b, --dashboard        Enable dashboard display
+  -r, --startrun TEXT    Starting run number (default: 1)
+  --help                 Show help message
+```
+
+### Configuration
+
+The configuration file (`config/default.yaml`) contains all experimental parameters:
+
+- **Timing parameters**: Baseline TRs, feedback TRs, trial structure
+- **Processing options**: Motion correction method, normalization
+- **File paths**: Data directories, classifier files, templates
+- **Network settings**: URLs for feedback delivery
+
+### Feedback Modes
+
+1. **Continuous**: Provides ongoing feedback throughout specified TRs
+2. **Intermittent**: Provides discrete feedback at specific trial timepoints
+
+### Debug Mode
+
+Use `--debug` flag to:
+- Use local test data instead of scanner input
+- Archive all processed files
+- Generate random classifier outputs for testing
+
+## Directory Structure
+
+### Required Files
+
+- **Reference functional image**: `ref/{subject_id}/{subject_id}_rfi.nii.gz`
+- **Classifier file**: `mni_clf/*_mni_clf.p` (pickled classifier object)
+- **Configuration**: `config/{config_name}.yaml`
+
+### Optional Files
+
+- **Warp file**: `ref/{subject_id}/*_warp_displacement.nii.gz` (for MNI normalization)
+- **MNI template**: `standard/*2mm_brain.nii.gz`
+
+## Classifier Requirements
+
+The classifier object must have:
+- `voxel_indices`: Array of voxel coordinates (n_voxels × 3)
+- `predict()`: Method for category predictions
+- `predict_evidence()` or `predict_proba()`: Method for probability estimates
+
+## Network Setup
+
+neuroloopy sends feedback data via HTTP POST to the experiment computer. Ensure:
+1. Network connectivity between processing and experiment computers
+2. Experiment computer running HTTP server at configured URL
+3. Firewall allows connections on specified port
+
+## Troubleshooting
+
+### Common Issues
+
+1. **"Config file not found"**: Run once to generate template, then customize
+2. **"Could not find RFI file"**: Check reference directory structure and file naming
+3. **"Motion correction failed"**: Verify AFNI/FSL installation and PATH
+4. **Network timeout**: Check post_url and network connectivity
+
+### Debug Mode
+
+Run with `--debug --logging` to:
+- Use test data directory
+- Generate detailed logs
+- Archive all intermediate files
+- Print timing information
+
+### Log Files
+
+Logs are saved to `log/` directory with timing information:
+- File detection events
+- Motion correction start/end
+- Feedback delivery
+- Processing latencies
+
+## Contributing
+
+1. Fork the repository
+2. Create a feature branch
+3. Make changes and add tests
+4. Submit a pull request
+
+## License
+
+MIT License - see LICENSE file for details.
+
+## Support
+
+For questions and issues:
+1. Check existing GitHub issues
+2. Review configuration template
+3. Test in debug mode first
+4. Provide logs and configuration when reporting bugs
