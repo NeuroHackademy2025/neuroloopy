@@ -1,0 +1,414 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>fMRI Real-time Dashboard</title>
+    <style>
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: white;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        h1 {
+            text-align: center;
+            margin-bottom: 10px;
+            font-size: 3.5em;
+            font-weight: 200;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+            letter-spacing: 2px;
+        }
+        
+        .subtitle {
+            text-align: center;
+            margin-bottom: 30px;
+            font-size: 1.2em;
+            font-weight: 300;
+            opacity: 0.9;
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.3);
+        }
+        
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr 1fr;
+            gap: 30px;
+            margin-bottom: 30px;
+        }
+        
+        .feedback-status {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            margin-bottom: 30px;
+        }
+        
+        .feedback-status h2 {
+            margin-top: 0;
+            margin-bottom: 20px;
+            font-size: 1.5em;
+            font-weight: 300;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            color: #fff;
+            border-bottom: 2px solid rgba(255, 255, 255, 0.3);
+            padding-bottom: 10px;
+            letter-spacing: 1px;
+        }
+        
+        .feedback-indicator {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            border-radius: 10px;
+            font-size: 1.2em;
+            font-weight: 400;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            margin: 15px 0;
+            letter-spacing: 1px;
+        }
+        
+        .feedback-sent {
+            background: rgba(76, 175, 80, 0.2);
+            border: 2px solid rgba(76, 175, 80, 0.5);
+            color: #4CAF50;
+        }
+        
+        .feedback-not-sent {
+            background: rgba(158, 158, 158, 0.2);
+            border: 2px solid rgba(158, 158, 158, 0.5);
+            color: #9E9E9E;
+        }
+        
+        .card {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        
+        .card h2 {
+            margin-top: 0;
+            margin-bottom: 20px;
+            font-size: 1.5em;
+            font-weight: 300;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            color: #fff;
+            border-bottom: 2px solid rgba(255, 255, 255, 0.3);
+            padding-bottom: 10px;
+            letter-spacing: 1px;
+        }
+        
+        .value-display {
+            font-size: 2.5em;
+            font-weight: 300;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            text-align: center;
+            margin: 20px 0;
+            padding: 20px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            border: 2px solid rgba(255, 255, 255, 0.2);
+        }
+        
+        .mc-params {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 15px;
+        }
+        
+        .mc-param {
+            text-align: center;
+            padding: 15px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        
+        .mc-param-label {
+            font-size: 0.9em;
+            font-weight: 300;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            margin-bottom: 5px;
+            opacity: 0.8;
+        }
+        
+        .mc-param-value {
+            font-size: 1.2em;
+            font-weight: 400;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+        }
+        
+        .status {
+            text-align: center;
+            padding: 15px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            margin-top: 20px;
+        }
+        
+        .status.connected {
+            background: rgba(76, 175, 80, 0.2);
+            border: 2px solid rgba(76, 175, 80, 0.5);
+        }
+        
+        .status.disconnected {
+            background: rgba(244, 67, 54, 0.2);
+            border: 2px solid rgba(244, 67, 54, 0.5);
+        }
+        
+        .timestamp {
+            font-size: 0.85em;
+            font-weight: 400;
+            opacity: 0.7;
+            text-align: center;
+            margin-top: 10px;
+        }
+        
+        .pulse {
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.7; }
+            100% { opacity: 1; }
+        }
+    </style>
+</head>
+<body>
+            <div class="container">
+            <h1>neuroloopy</h1>
+            <div class="subtitle">fMRI Neurofeedback Dashboard</div>
+            
+            <div class="feedback-status">
+                <h2>Neurofeedback Status</h2>
+                <div id="feedback-indicator" class="feedback-indicator feedback-not-sent">
+                    NEUROFEEDBACK NOT SENT
+                </div>
+                <div id="feedback-timestamp" class="timestamp">No feedback sent</div>
+            </div>
+            
+            <div class="dashboard-grid">
+                <div class="card">
+                    <h2>Classifier Output</h2>
+                    <div id="clf-value" class="value-display">--</div>
+                    <div id="clf-timestamp" class="timestamp">No data received</div>
+                </div>
+                
+                <div class="card">
+                    <h2>Run Number</h2>
+                    <div id="run-number" class="value-display">--</div>
+                    <div id="run-timestamp" class="timestamp">No data received</div>
+                </div>
+                
+                <div class="card">
+                    <h2>Feedback Number</h2>
+                    <div id="feedback-number" class="value-display">--</div>
+                    <div id="feedback-number-timestamp" class="timestamp">No data received</div>
+                </div>
+                
+                <div class="card">
+                    <h2>Motion Correction Parameters</h2>
+                    <div class="mc-params">
+                        <div class="mc-param">
+                            <div class="mc-param-label">X Translation</div>
+                            <div id="mc-x" class="mc-param-value">--</div>
+                        </div>
+                        <div class="mc-param">
+                            <div class="mc-param-label">Y Translation</div>
+                            <div id="mc-y" class="mc-param-value">--</div>
+                        </div>
+                        <div class="mc-param">
+                            <div class="mc-param-label">Z Translation</div>
+                            <div id="mc-z" class="mc-param-value">--</div>
+                        </div>
+                        <div class="mc-param">
+                            <div class="mc-param-label">X Rotation</div>
+                            <div id="mc-rx" class="mc-param-value">--</div>
+                        </div>
+                        <div class="mc-param">
+                            <div class="mc-param-label">Y Rotation</div>
+                            <div id="mc-ry" class="mc-param-value">--</div>
+                        </div>
+                        <div class="mc-param">
+                            <div class="mc-param-label">Z Rotation</div>
+                            <div id="mc-rz" class="mc-param-value">--</div>
+                        </div>
+                    </div>
+                    <div id="mc-timestamp" class="timestamp">No data received</div>
+                </div>
+            </div>
+            
+            <div id="connection-status" class="status disconnected">
+                <strong>Status:</strong> Disconnected from server
+            </div>
+        </div>
+
+    <script>
+        // WebSocket connection for real-time updates
+        let ws = null;
+        let reconnectAttempts = 0;
+        const maxReconnectAttempts = 5;
+        
+        function connectWebSocket() {
+            try {
+                ws = new WebSocket('ws://localhost:5001');
+                
+                ws.onopen = function() {
+                    console.log('WebSocket connected');
+                    document.getElementById('connection-status').className = 'status connected';
+                    document.getElementById('connection-status').innerHTML = '<strong>Status:</strong> Connected to server';
+                    reconnectAttempts = 0;
+                };
+                
+                ws.onmessage = function(event) {
+                    const data = JSON.parse(event.data);
+                    updateDashboard(data);
+                };
+                
+                ws.onclose = function() {
+                    console.log('WebSocket disconnected');
+                    document.getElementById('connection-status').className = 'status disconnected';
+                    document.getElementById('connection-status').innerHTML = '<strong>Status:</strong> Disconnected from server';
+                    
+                    // Attempt to reconnect
+                    if (reconnectAttempts < maxReconnectAttempts) {
+                        reconnectAttempts++;
+                        setTimeout(connectWebSocket, 2000);
+                    }
+                };
+                
+                ws.onerror = function(error) {
+                    console.error('WebSocket error:', error);
+                };
+                
+            } catch (error) {
+                console.error('Failed to connect WebSocket:', error);
+            }
+        }
+        
+        function updateDashboard(data) {
+            if (data.type === 'clf_data') {
+                document.getElementById('clf-value').textContent = data.value.toFixed(4);
+                document.getElementById('clf-value').classList.add('pulse');
+                document.getElementById('clf-timestamp').textContent = new Date().toLocaleTimeString();
+                
+                // Remove pulse animation after 2 seconds
+                setTimeout(() => {
+                    document.getElementById('clf-value').classList.remove('pulse');
+                }, 2000);
+            }
+            else if (data.type === 'run_number') {
+                document.getElementById('run-number').textContent = data.value;
+                document.getElementById('run-number').classList.add('pulse');
+                document.getElementById('run-timestamp').textContent = new Date().toLocaleTimeString();
+                
+                // Remove pulse animation after 2 seconds
+                setTimeout(() => {
+                    document.getElementById('run-number').classList.remove('pulse');
+                }, 2000);
+            }
+            else if (data.type === 'feedback_number') {
+                document.getElementById('feedback-number').textContent = data.value;
+                document.getElementById('feedback-number').classList.add('pulse');
+                document.getElementById('feedback-number-timestamp').textContent = new Date().toLocaleTimeString();
+                
+                // Remove pulse animation after 2 seconds
+                setTimeout(() => {
+                    document.getElementById('feedback-number').classList.remove('pulse');
+                }, 2000);
+            }
+            else if (data.type === 'mc_data') {
+                const params = data.params;
+                if (params && params.length >= 6) {
+                    document.getElementById('mc-x').textContent = params[0].toFixed(4);
+                    document.getElementById('mc-y').textContent = params[1].toFixed(4);
+                    document.getElementById('mc-z').textContent = params[2].toFixed(4);
+                    document.getElementById('mc-rx').textContent = params[3].toFixed(4);
+                    document.getElementById('mc-ry').textContent = params[4].toFixed(4);
+                    document.getElementById('mc-rz').textContent = params[5].toFixed(4);
+                    
+                    // Add pulse animation to all MC values
+                    const mcElements = ['mc-x', 'mc-y', 'mc-z', 'mc-rx', 'mc-ry', 'mc-rz'];
+                    mcElements.forEach(id => {
+                        document.getElementById(id).classList.add('pulse');
+                    });
+                    
+                    document.getElementById('mc-timestamp').textContent = new Date().toLocaleTimeString();
+                    
+                    // Remove pulse animation after 2 seconds
+                    setTimeout(() => {
+                        mcElements.forEach(id => {
+                            document.getElementById(id).classList.remove('pulse');
+                        });
+                    }, 2000);
+                }
+            }
+            else if (data.type === 'feedback_status') {
+                const indicator = document.getElementById('feedback-indicator');
+                const timestamp = document.getElementById('feedback-timestamp');
+                
+                if (data.sent) {
+                    indicator.className = 'feedback-indicator feedback-sent';
+                    indicator.textContent = 'NEUROFEEDBACK SENT';
+                    timestamp.textContent = new Date().toLocaleTimeString();
+                    
+                    // Add pulse animation
+                    indicator.classList.add('pulse');
+                    setTimeout(() => {
+                        indicator.classList.remove('pulse');
+                    }, 3000);
+                } else {
+                    indicator.className = 'feedback-indicator feedback-not-sent';
+                    indicator.textContent = 'NEUROFEEDBACK NOT SENT';
+                    timestamp.textContent = 'No feedback sent';
+                }
+            }
+        }
+        
+        // Initialize WebSocket connection
+        connectWebSocket();
+        
+        // Fallback: Poll for updates if WebSocket fails
+        function pollForUpdates() {
+            fetch('/api/latest-data')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.clf_data) {
+                        updateDashboard({type: 'clf_data', value: data.clf_data.value});
+                    }
+                    if (data.run_number) {
+                        updateDashboard({type: 'run_number', value: data.run_number});
+                    }
+                    if (data.feedback_number) {
+                        updateDashboard({type: 'feedback_number', value: data.feedback_number});
+                    }
+                    if (data.mc_data) {
+                        updateDashboard({type: 'mc_data', params: data.mc_data.params});
+                    }
+                })
+                .catch(error => {
+                    console.log('Polling failed, will retry...');
+                });
+        }
+        
+        // Start polling as fallback
+        setInterval(pollForUpdates, 1000);
+    </script>
+</body>
+</html> 
