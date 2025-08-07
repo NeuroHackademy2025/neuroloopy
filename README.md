@@ -1,5 +1,5 @@
 # neuroloopy
-![](neuroloopy_logo_v2.png )<br>
+![](docs/neuroloopy_logo_v2.png )<br>
 Real-time fMRI neurofeedback processing package for closed-loop experiments.
 
 ## Features
