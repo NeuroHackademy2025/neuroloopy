@@ -1,0 +1,40 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "neuroloopy"
+authors = [
+  { name="Caleb Jerinic-Brodeur", email="cjerinic@utexas.edu" },
+  { name="Deepa Prasad", email="deepasri.prasad.gr@dartmouth.edu" },
+  { name="Hildelith Leyser", email="hildieleyser@gmail.com" },
+  { name="Lynn Kurteff", email="lkurteff@uci.edu" },
+  { name="Nikhitha D", email="nikhithad6202@gmail.com" },
+]
+
+description = "Flexible Python package for real-time signal processing and closed-loop neurofeedback"
+readme = "README.md"
+
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Intended Audience :: Science/Research",
+    "Topic :: Scientific/Engineering"
+]
+
+requires-python = ">=3.10"
+dependencies = [
+    "pandas==2.2.2"
+]
+
+version = "0.0.1"
+
+[project.urls]
+Homepage = "https://github.com/NeuroHackademy2025/neuroloopy"
+Issues = "https://github.com/NeuroHackademy2025/neuroloopy/issues"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+include = ["neuroloopy*"]
+exclude = ["tests*"]
