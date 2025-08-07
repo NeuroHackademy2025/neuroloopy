@@ -1,0 +1,47 @@
+# Example configuration file for neuroloopy
+# Copy this file and modify as needed for your experiment
+
+# Subject and session information
+subject-id: sub-01
+session-number: 1
+start-run: 1
+
+# Timing parameters
+baseline-trs: 10          # Number of baseline TRs
+feedback-trs: 100         # Number of feedback TRs
+moving-avg-trs: 5         # Moving average window size
+
+# Feedback mode: 'continuous' or 'intermittent'
+feedback-mode: continuous
+
+# For intermittent mode, uncomment and modify these parameters:
+# trials-per-run: 10
+# encoding-trs: 5
+# cue-trs: 2
+# wait-trs: 3
+# feedback-trs: 4
+# iti-trs: 2
+# endRun-fix-trs: 10
+
+# Processing parameters
+mc-mode: fsl              # Motion correction mode: 'fsl', 'afni', or 'none'
+dcm2niix-dir: /usr/bin    # Path to dcm2niix executable
+
+# File paths
+watch-dir: ./data         # Directory to watch for new DICOM files
+post-url: http://localhost:8080  # URL for posting feedback data
+
+# Data management
+archive-data: false        # Whether to archive processed data
+archive-dir: ./archive    # Directory for archived data
+
+# Dashboard settings
+dashboard_bool: true       # Enable dashboard integration
+dashboard-base-url: http://localhost:8080  # Dashboard base URL
+
+# Logging settings
+logging_bool: false        # Enable event logging
+log_file_time: 1.539e9    # Log file timestamp
+
+# Debug settings
+debug_bool: false          # Enable debug mode 
