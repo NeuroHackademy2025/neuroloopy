@@ -5,6 +5,8 @@ def main():
     print("="*60)
     
     # Parse command line arguments
+    import argparse
+    
     args = parse_arguments()
     print(f"Arguments: {vars(args)}")
     
